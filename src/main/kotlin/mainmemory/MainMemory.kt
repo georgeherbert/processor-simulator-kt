@@ -12,9 +12,7 @@ import kotlin.experimental.or
 class InvalidAddressException(address: Int) : Exception("Address $address is out of bounds")
 
 class MainMemory private constructor(private val bytes: List<Byte>) : MainMemoryLoader, MainMemoryStorer {
-    companion object {
-        fun create(size: Int) = MainMemory(List(size) { 0 })
-    }
+    constructor(size: Int) : this(List(size) { 0 })
 
     // TODO [GH] Will need to % here when we introduce speculative execution
     override fun loadByte(address: Int): Byte {

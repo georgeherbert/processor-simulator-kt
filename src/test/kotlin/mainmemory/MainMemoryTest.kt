@@ -8,7 +8,7 @@ import strikt.assertions.isEqualTo
 import strikt.assertions.isFailure
 
 class MainMemoryTest {
-    private val memory = MainMemory.create(8)
+    private val memory = MainMemory(8)
 
     @Test
     fun `is initially zeroed`() {
