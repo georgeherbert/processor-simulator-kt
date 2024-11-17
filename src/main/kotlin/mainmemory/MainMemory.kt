@@ -11,38 +11,37 @@ import kotlin.experimental.or
 
 class InvalidAddressException(address: Int) : Exception("Address $address is out of bounds")
 
-class MainMemory(private val size: Int) {
-    private val data = ByteArray(size)
-
-    private fun checkAddress(address: Int) {
-        if (address < 0 || address >= size) {
-            throw InvalidAddressException(address)
-        }
+class MainMemory private constructor(private val bytes: List<Byte>) : MainMemoryLoader, MainMemoryStorer {
+    companion object {
+        fun create(size: Int) = MainMemory(List(size) { 0 })
     }
 
     // TODO [GH] Will need to % here when we introduce speculative execution
-    fun loadByte(address: Int): Byte {
+    override fun loadByte(address: Int): Byte {
         checkAddress(address)
-        return data[address]
+        return bytes[address]
     }
 
-    fun loadHalfWord(address: Int): HalfWord =
+    override fun loadHalfWord(address: Int) =
         loadByte(address).toHalfWord() or (loadByte(address + 1).toHalfWord() shl 8)
 
-    fun loadWord(address: Int): Word = loadHalfWord(address).toWord() or (loadHalfWord(address + 2).toWord() shl 16)
+    override fun loadWord(address: Int) =
+        loadHalfWord(address).toWord() or (loadHalfWord(address + 2).toWord() shl 16)
 
-    fun storeByte(address: Int, value: Byte) {
+    override fun storeByte(address: Int, value: Byte): MainMemory {
         checkAddress(address)
-        data[address] = value
+        return MainMemory(bytes.toMutableList().apply { this[address] = value })
     }
 
-    fun storeHalfWord(address: Int, value: HalfWord) {
-        storeByte(address, value.toByte())
-        storeByte(address + 1, (value shr 8).toByte())
-    }
+    override fun storeHalfWord(address: Int, value: HalfWord) =
+        storeByte(address, value.toByte()).storeByte(address + 1, (value shr 8).toByte())
 
-    fun storeWord(address: Int, value: Word) {
-        storeHalfWord(address, value.toHalfWord())
-        storeHalfWord(address + 2, (value shr 16).toHalfWord())
+    override fun storeWord(address: Int, value: Word) =
+        storeHalfWord(address, value.toHalfWord()).storeHalfWord(address + 2, (value shr 16).toHalfWord())
+
+    private fun checkAddress(address: Int) {
+        if (address < 0 || address >= bytes.size) {
+            throw InvalidAddressException(address)
+        }
     }
 }
