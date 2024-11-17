@@ -6,9 +6,11 @@ import strikt.api.expectThat
 import strikt.assertions.isA
 import strikt.assertions.isEqualTo
 import strikt.assertions.isFailure
+import types.Size
 
 class MainMemoryTest {
-    private val memory = MainMemory(8)
+    private val size = Size(8)
+    private val memory = MainMemory(size)
 
     @Test
     fun `is initially zeroed`() {

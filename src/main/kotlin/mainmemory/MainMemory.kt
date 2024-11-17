@@ -1,18 +1,19 @@
 package mainmemory
 
-import dataunit.HalfWord
-import dataunit.Word
-import dataunit.shl
-import dataunit.shr
-import dataunit.toHalfWord
-import dataunit.toWord
+import types.HalfWord
+import types.Size
+import types.Word
+import types.shl
+import types.shr
+import types.toHalfWord
+import types.toWord
 import java.lang.Exception
 import kotlin.experimental.or
 
 class InvalidAddressException(address: Int) : Exception("Address $address is out of bounds")
 
 class MainMemory private constructor(private val bytes: List<Byte>) : MainMemoryLoader, MainMemoryStorer {
-    constructor(size: Int) : this(List(size) { 0 })
+    constructor(size: Size) : this(List(size.value) { 0 })
 
     // TODO [GH] Will need to % here when we introduce speculative execution
     override fun loadByte(address: Int): Byte {

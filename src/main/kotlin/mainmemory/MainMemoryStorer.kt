@@ -1,7 +1,7 @@
 package mainmemory
 
-import dataunit.HalfWord
-import dataunit.Word
+import types.HalfWord
+import types.Word
 
 interface MainMemoryStorer {
     fun storeByte(address: Int, value: Byte): MainMemoryStorer
