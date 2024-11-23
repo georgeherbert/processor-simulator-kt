@@ -12,7 +12,8 @@ import kotlin.experimental.or
 
 class InvalidAddressException(address: Int) : Exception("Address $address is out of bounds")
 
-class MainMemory private constructor(private val bytes: List<Byte>) : MainMemoryLoader, MainMemoryStorer {
+@ConsistentCopyVisibility
+data class MainMemory private constructor(private val bytes: List<Byte>) : MainMemoryLoader, MainMemoryStorer {
     constructor(size: Size) : this(List(size.value) { 0 })
 
     // TODO [GH] Will need to % here when we introduce speculative execution
@@ -29,7 +30,7 @@ class MainMemory private constructor(private val bytes: List<Byte>) : MainMemory
 
     override fun storeByte(address: Int, value: Byte): MainMemory {
         checkAddress(address)
-        return MainMemory(bytes.toMutableList().apply { this[address] = value })
+        return copy(bytes = bytes.toMutableList().apply { this[address] = value })
     }
 
     override fun storeHalfWord(address: Int, value: HalfWord) =

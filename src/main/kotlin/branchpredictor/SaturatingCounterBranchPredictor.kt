@@ -5,20 +5,22 @@ import types.ProgramCounter
 import types.Size
 import types.max
 
-private class SaturatingCounter private constructor(private val value: Int, private val bitWidth: BitWidth) {
+@ConsistentCopyVisibility
+private data class SaturatingCounter private constructor(private val value: Int, private val bitWidth: BitWidth) {
     constructor(bitWidth: BitWidth) : this(bitWidth.max / 2, bitWidth)
 
     init {
         require(bitWidth.value > 0) { "Bit width must be greater than 0" }
     }
 
-    fun increment() = SaturatingCounter((value + 1).coerceAtMost(bitWidth.max), bitWidth)
-    fun decrement() = SaturatingCounter((value - 1).coerceAtLeast(0), bitWidth)
+    fun increment() = copy(value = (value + 1).coerceAtMost(bitWidth.max))
+    fun decrement() = copy(value = (value - 1).coerceAtLeast(0))
 
     fun takeBranch() = value > bitWidth.max / 2
 }
 
-class SaturatingCounterBranchPredictor private constructor(
+@ConsistentCopyVisibility
+data class SaturatingCounterBranchPredictor private constructor(
     private val entries: List<Entry>,
     private val bitWidth: BitWidth,
 ) : BranchPredictor, BranchListener {
@@ -48,10 +50,7 @@ class SaturatingCounterBranchPredictor private constructor(
             saturatingCounter = if (taken) saturatingCounter.increment() else saturatingCounter.decrement()
         )
 
-        return SaturatingCounterBranchPredictor(
-            entries = this.entries.toMutableList().apply { this[programCounter.index] = newEntry },
-            bitWidth = bitWidth
-        )
+        return copy(entries = this.entries.toMutableList().apply { this[programCounter.index] = newEntry })
     }
 
     private val ProgramCounter.index get() = this.value % entries.size
