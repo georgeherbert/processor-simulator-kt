@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.0.20"
+    `java-test-fixtures`
 }
 
 group = "io.github.georgeherbert.processor"
