@@ -26,13 +26,13 @@ class DataUnitTest {
         }
 
         @Test
-        fun `constructor accepts byte lower and upper bounds`() {
+        fun `bytes can be zero or positive`() {
             Byte(0)
             Byte(0xFF)
         }
 
         @Test
-        fun `constructor rejects byte out of range`() {
+        fun `bytes cannot be negative`() {
             expectCatching { Byte(-1) }
                 .isFailure()
                 .isA<IllegalArgumentException>()
@@ -79,13 +79,13 @@ class DataUnitTest {
         }
 
         @Test
-        fun `constructor accepts halfWord lower and upper bounds`() {
+        fun `half words can be zero or positive`() {
             HalfWord(0)
             HalfWord(0xFFFF)
         }
 
         @Test
-        fun `constructor rejects halfWord out of range`() {
+        fun `half words cannot be negative`() {
             expectCatching { HalfWord(-1) }
                 .isFailure()
                 .isA<IllegalArgumentException>()
