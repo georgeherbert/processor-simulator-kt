@@ -1,12 +1,12 @@
 package branchpredictor
 
+import org.junit.jupiter.api.Test
 import strikt.api.expectCatching
 import strikt.api.expectThat
 import strikt.assertions.*
 import types.InstructionAddress
 import types.Size
 import types.next
-import kotlin.test.Test
 
 class BranchTargetBufferTest {
 
