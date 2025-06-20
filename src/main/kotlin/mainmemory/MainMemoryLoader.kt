@@ -1,5 +1,6 @@
 package mainmemory
 
+import types.Byte
 import types.HalfWord
 import types.Word
 

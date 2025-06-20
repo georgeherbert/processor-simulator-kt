@@ -1,14 +1,17 @@
 package types
 
-import kotlin.experimental.and
+@JvmInline
+value class Byte(val value: Int)
 
-typealias HalfWord = Short
-typealias Word = Int
+@JvmInline
+value class HalfWord(val value: Int)
 
-fun Byte.toHalfWord(): HalfWord = toShort() and 0xFF
-fun HalfWord.toWord(): Word = toInt() and 0xFFFF
+@JvmInline
+value class Word(val value: Int)
 
-fun Word.toHalfWord(): HalfWord = toShort()
+fun Byte.toHalfWord(): HalfWord = HalfWord(value and 0xFF)
+fun HalfWord.toWord(): Word = Word(value and 0xFFFF)
+fun Word.toHalfWord(): HalfWord = HalfWord(value and 0xFFFF)
 
-infix fun HalfWord.shl(bits: Int): HalfWord = (toInt() shl bits).toShort()
-infix fun HalfWord.shr(bits: Int): HalfWord = ((toInt() and 0xFFFF) ushr bits).toShort()
+infix fun HalfWord.shl(bits: Int): HalfWord = HalfWord((value shl bits) and 0xFFFF)
+infix fun HalfWord.shr(bits: Int): HalfWord = HalfWord((value ushr bits) and 0xFFFF)
