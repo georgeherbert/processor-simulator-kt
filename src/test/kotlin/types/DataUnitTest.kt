@@ -46,6 +46,12 @@ class DataUnitTest {
             val halfWord: HalfWord = 0x1234
             expectThat(halfWord shr 8).isEqualTo(0x0012)
         }
+
+        @Test
+        fun `right shifting a half word performs a logical right shift`() {
+            val halfWord: HalfWord = 0x8000.toShort()
+            expectThat(halfWord shr 1).isEqualTo(0x4000)
+        }
     }
 
     @Nested

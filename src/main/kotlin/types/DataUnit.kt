@@ -11,4 +11,4 @@ fun HalfWord.toWord(): Word = toInt() and 0xFFFF
 fun Word.toHalfWord(): HalfWord = toShort()
 
 infix fun HalfWord.shl(bits: Int): HalfWord = (toInt() shl bits).toShort()
-infix fun HalfWord.shr(bits: Int): HalfWord = (toInt() shr bits).toShort()
+infix fun HalfWord.shr(bits: Int): HalfWord = ((toInt() and 0xFFFF) ushr bits).toShort()
