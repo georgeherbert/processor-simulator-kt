@@ -1,25 +1,23 @@
 package types
 
 @JvmInline
-value class Byte(val value: Int) {
-    init {
-        require(value in 0..0xFF) { "Byte out of range: $value" }
-    }
-}
+value class Byte(val value: UByte)
 
 @JvmInline
-value class HalfWord(val value: Int) {
-    init {
-        require(value in 0..0xFFFF) { "HalfWord out of range: $value" }
-    }
-}
+value class HalfWord(val value: UShort)
 
 @JvmInline
-value class Word(val value: Int)
+value class Word(val value: UInt)
 
-fun Byte.toHalfWord(): HalfWord = HalfWord(value)
-fun HalfWord.toWord(): Word = Word(value)
-fun Word.toHalfWord(): HalfWord = HalfWord(value and 0xFFFF)
+fun Byte.toHalfWord() = HalfWord(value.toUShort())
+fun HalfWord.toByte() = Byte(value.toUByte())
+fun HalfWord.toWord() = Word(value.toUInt())
+fun Word.toHalfWord() = HalfWord(value.toUShort())
 
-infix fun HalfWord.shl(bits: Int): HalfWord = HalfWord((value shl bits) and 0xFFFF)
-infix fun HalfWord.shr(bits: Int): HalfWord = HalfWord((value ushr bits) and 0xFFFF)
+infix fun HalfWord.shl(bits: Int) = (toWord() shl bits).toHalfWord()
+infix fun HalfWord.shr(bits: Int) = (toWord() shr bits).toHalfWord()
+infix fun Word.shl(bits: Int) = Word(value shl bits)
+infix fun Word.shr(bits: Int) = Word(value shr bits)
+
+infix fun HalfWord.or(other: HalfWord) = HalfWord(value or other.value)
+infix fun Word.or(other: Word) = Word(value or other.value)
