@@ -95,7 +95,7 @@ class BranchTargetBufferTest {
         var outcome: Boolean? = null
 
         val instructionAddress = InstructionAddress(0)
-        buffer(Size(1), CallbackBranchOutcomePredictorStub { outcome = it })
+        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcome = callbackOutcome })
             .outcome(instructionAddress, instructionAddress.next)
 
         expectThat(outcome).isFalse()
@@ -105,7 +105,7 @@ class BranchTargetBufferTest {
     fun `reports taken to the outcome predictor if the target instruction address is not the next instruction`() {
         var outcome: Boolean? = null
 
-        buffer(Size(1), CallbackBranchOutcomePredictorStub { outcome = it })
+        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcome = callbackOutcome })
             .outcome(InstructionAddress(0), InstructionAddress(42))
 
         expectThat(outcome).isTrue()

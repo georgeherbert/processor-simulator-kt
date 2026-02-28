@@ -18,12 +18,15 @@ data class BranchTargetBuffer private constructor(
         require(entries.isNotEmpty()) { "Size must be greater than 0" }
     }
 
-    override fun predict(instructionAddress: InstructionAddress) = entries[instructionAddress.index].let {
-        when (it?.instructionAddress == instructionAddress && branchOutcomePredictor.predict(instructionAddress)) {
-            true -> it.targetInstructionAddress
-            false -> instructionAddress.next
-        }
-    }
+    override fun predict(instructionAddress: InstructionAddress) =
+        entries[instructionAddress.index]
+            ?.let { entry ->
+                when (isPredictedTaken(entry, instructionAddress)) {
+                    true -> entry.targetInstructionAddress
+                    false -> instructionAddress.next
+                }
+            }
+            ?: instructionAddress.next
 
     override fun outcome(
         instructionAddress: InstructionAddress,
@@ -35,6 +38,12 @@ data class BranchTargetBuffer private constructor(
             instructionAddress.next != targetInstructionAddress
         )
     )
+
+    private fun isPredictedTaken(
+        entry: Entry,
+        instructionAddress: InstructionAddress,
+    ) =
+        entry.instructionAddress == instructionAddress && branchOutcomePredictor.predict(instructionAddress)
 
     private fun List<Entry?>.withEntry(entry: Entry) =
         toMutableList().apply { this[entry.instructionAddress.index] = entry }

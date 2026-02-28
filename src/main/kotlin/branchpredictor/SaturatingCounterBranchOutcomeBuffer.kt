@@ -27,9 +27,12 @@ data class SaturatingCounterBranchOutcomeBuffer private constructor(
         require(bitWidth.value > 0) { "Bit width must be greater than 0" }
     }
 
-    override fun predict(instructionAddress: InstructionAddress) = entries[instructionAddress.index].let {
-        it?.instructionAddress == instructionAddress && it.saturatingCounter.takeBranch()
-    }
+    override fun predict(instructionAddress: InstructionAddress) =
+        entries[instructionAddress.index]
+            ?.let { entry ->
+                entry.instructionAddress == instructionAddress && entry.saturatingCounter.takeBranch()
+            }
+            ?: false
 
     override fun outcome(instructionAddress: InstructionAddress, taken: Boolean): SaturatingCounterBranchOutcomeBuffer {
         val currentEntry = entries[instructionAddress.index]
