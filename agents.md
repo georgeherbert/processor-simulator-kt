@@ -81,8 +81,9 @@ Use this file as the default operating guide for contributors and coding agents.
   - Prefer domain value types (`Word`, `InstructionAddress`, etc.) over primitives at component boundaries.
 - Keep APIs explicit and small:
   - Clear method names (`loadByte`, `storeWord`, etc.).
-  - Do not throw exceptions that can manifest during normal runtime behavior.
-  - Prefer `ProcessorResult<T>` for recoverable failures instead of nulls or exceptions.
+  - All failure cases must be modeled with `ProcessorResult<T>`.
+  - Do not use exceptions or nullable return values to represent failure.
+  - Do not add explicit return types on override methods when the interface already defines the return type.
 - When no stronger domain name is available, use `Real` as the concrete production implementation prefix for interface implementations.
 - Keep logic readable:
   - Use expression bodies where concise.

@@ -18,18 +18,20 @@ data class RealCommonDataBus private constructor(
 
     constructor(size: Size) : this(List(size.value) { null })
 
-    override fun write(robId: RobId, value: Word): ProcessorResult<CommonDataBus> {
-        val freeIndex = entries.indexOfFirst { entry -> entry == null }
-
-        return when (freeIndex) {
-            -1 -> CommonDataBusFull.asFailure()
-            else -> copy(entries = entries.withEntryAt(freeIndex, Entry(robId, value))).asSuccess()
-        }
-    }
+    override fun write(robId: RobId, value: Word) =
+        entries
+            .indexOfFirst { entry -> entry == null }
+            .let { freeIndex ->
+                when (freeIndex) {
+                    -1 -> CommonDataBusFull.asFailure()
+                    else -> copy(entries = entries.withEntryAt(freeIndex, Entry(robId, value))).asSuccess()
+                }
+            }
+            .let { writeResult: ProcessorResult<CommonDataBus> -> writeResult }
 
     override fun isValueReady(robId: RobId) = entries.any { entry -> entry?.robId == robId }
 
-    override fun valueFor(robId: RobId): ProcessorResult<Word> =
+    override fun valueFor(robId: RobId) =
         entries
             .firstNotNullOfOrNull { entry ->
                 when (entry?.robId) {
@@ -38,6 +40,7 @@ data class RealCommonDataBus private constructor(
                 }
             }
             ?: CommonDataBusValueNotPresent.asFailure()
+            .let { valueResult: ProcessorResult<Word> -> valueResult }
 
     override fun clear() = copy(entries = entries.map { null })
 
