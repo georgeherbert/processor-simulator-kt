@@ -82,11 +82,13 @@ Use this file as the default operating guide for contributors and coding agents.
 - Keep APIs explicit and small:
   - Clear method names (`loadByte`, `storeWord`, etc.).
   - Do not throw exceptions that can manifest during normal runtime behavior.
+  - Prefer `ProcessorResult<T>` for recoverable failures instead of nulls or exceptions.
 - When no stronger domain name is available, use `Real` as the concrete production implementation prefix for interface implementations.
 - Keep logic readable:
   - Use expression bodies where concise.
   - Keep helper extensions/private helpers near call sites.
   - Never use implicit lambda parameters (`it`); always name lambda variables explicitly.
+  - Avoid acronyms in Kotlin names where practical (`commonDataBus` over `cdb`).
 
 ## State Modeling Rule
 - Model cycle/tick transition semantics at processor-state orchestration level by default.
@@ -97,5 +99,9 @@ Use this file as the default operating guide for contributors and coding agents.
 - Use Strikt assertions (`expectThat`, `expectCatching`).
 - Prefer simple expressions inside `expectThat(...)`.
 - Prefer chained assertions on separate lines for readability.
+- Keep assertions top-level in test bodies; do not place assertions inside `let` blocks.
+- Use explicit intermediate variables in tests when they improve readability.
+- Separate consecutive assertion blocks with a blank line.
+- For `ProcessorResult`, use Strikt assertion-builder extensions (`expectThat(result).isSuccess()` / `isFailure()`) from `src/testFixtures`.
 - Prefer behavior-focused test names and edge-case coverage (bounds, endian behavior, shift semantics).
 - Use `src/testFixtures` for reusable predictor/test doubles.
