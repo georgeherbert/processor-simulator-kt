@@ -9,6 +9,7 @@ import types.InstructionAddress
 import types.Size
 
 class SaturatingCounterBranchOutcomeBufferTest {
+
     @Test
     fun `cannot create a buffer with zero entries`() {
         expectCatching { buffer(Size(0), BitWidth(1)) }
@@ -87,17 +88,17 @@ class SaturatingCounterBranchOutcomeBufferTest {
     fun `non-colliding outcomes do not interfere with each other`() {
         val buffer = buffer(Size(2), BitWidth(1))
             .outcome(InstructionAddress(0), false)
-            .outcome(InstructionAddress(1), true)
+            .outcome(InstructionAddress(4), true)
 
         expectThat(buffer.predict(InstructionAddress(0))).isFalse()
-        expectThat(buffer.predict(InstructionAddress(1))).isTrue()
+        expectThat(buffer.predict(InstructionAddress(4))).isTrue()
 
         val newBuffer = buffer
             .outcome(InstructionAddress(0), true)
-            .outcome(InstructionAddress(1), false)
+            .outcome(InstructionAddress(4), false)
 
         expectThat(newBuffer.predict(InstructionAddress(0))).isTrue()
-        expectThat(newBuffer.predict(InstructionAddress(1))).isFalse()
+        expectThat(newBuffer.predict(InstructionAddress(4))).isFalse()
     }
 
     @Test

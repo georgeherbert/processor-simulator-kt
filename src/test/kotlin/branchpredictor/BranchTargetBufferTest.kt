@@ -75,10 +75,10 @@ class BranchTargetBufferTest {
     fun `non-colliding outcomes do not interfere with each other`() {
         val buffer = buffer(Size(2), alwaysTakenPredictor)
             .outcome(InstructionAddress(0), InstructionAddress(21))
-            .outcome(InstructionAddress(1), InstructionAddress(42))
+            .outcome(InstructionAddress(4), InstructionAddress(42))
 
         expectThat(buffer.predict(InstructionAddress(0))).isEqualTo(InstructionAddress(21))
-        expectThat(buffer.predict(InstructionAddress(1))).isEqualTo(InstructionAddress(42))
+        expectThat(buffer.predict(InstructionAddress(4))).isEqualTo(InstructionAddress(42))
     }
 
     @Test

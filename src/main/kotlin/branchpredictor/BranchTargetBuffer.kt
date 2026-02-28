@@ -48,7 +48,7 @@ data class BranchTargetBuffer private constructor(
     private fun List<Entry?>.withEntry(entry: Entry) =
         toMutableList().apply { this[entry.instructionAddress.index] = entry }
 
-    private val InstructionAddress.index get() = value % entries.size
+    private val InstructionAddress.index get() = (value / 4) % entries.size
 
     private data class Entry(
         val instructionAddress: InstructionAddress,
