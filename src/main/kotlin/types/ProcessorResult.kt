@@ -12,3 +12,7 @@ data object CommonDataBusValueNotPresent : CommonDataBusError
 
 sealed interface MainMemoryError : ProcessorError
 data class MainMemoryAddressOutOfBounds(val address: Int) : MainMemoryError
+
+sealed interface InstructionQueueError : ProcessorError
+data object InstructionQueueFull : InstructionQueueError
+data object InstructionQueueEmpty : InstructionQueueError

@@ -71,6 +71,7 @@ Use this file as the default operating guide for contributors and coding agents.
 
 ## Kotlin Code Style (Project Standard)
 - Do not use default parameter values in constructors or functions.
+- Never use hard casts with `as`.
 - Use explicit constructors for fixed initialization requirements (for example explicit zero-initialization).
 - Prefer immutable models:
   - `data class ... private constructor(...)` plus controlled secondary constructors.
@@ -105,4 +106,5 @@ Use this file as the default operating guide for contributors and coding agents.
 - Separate consecutive assertion blocks with a blank line.
 - For `ProcessorResult`, use Strikt assertion-builder extensions (`expectThat(result).isSuccess()` / `isFailure()`) from `src/testFixtures`.
 - Prefer behavior-focused test names and edge-case coverage (bounds, endian behavior, shift semantics).
+- Tests must cover all code paths, including edge and failure cases, for each component.
 - Use `src/testFixtures` for reusable predictor/test doubles.
