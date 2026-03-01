@@ -14,7 +14,7 @@ import types.Word
 class MainMemoryTest {
 
     private val size = Size(8)
-    private val memory = MainMemory(size)
+    private val memory = RealMainMemory(size)
 
     @Test
     fun `is initially zeroed`() {

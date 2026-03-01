@@ -15,12 +15,6 @@ Use this file as the default operating guide for contributors and coding agents.
 - `pre-commit` intentionally runs `./gradlew clean build` to reduce local/CI drift.
 - For quick feedback during development, `./gradlew test` is fine, but pre-commit remains the stricter gate.
 
-## Architecture Rule
-- Every concrete class must implement an interface.
-- Design for testability by default:
-  - Production code depends on interfaces, not implementations.
-  - Add stubs/fakes in `src/testFixtures` only when a real test seam needs them.
-
 ## Reference Scope (C Implementation)
 - Reference source is under `reference/src_superscalar/`.
 - Reference architecture is documented in `reference/presentation.pdf`.
@@ -69,10 +63,21 @@ Use this file as the default operating guide for contributors and coding agents.
 - Commit: retire in order up to commit width, update architectural state, handle branch resolution/mispredict recovery, and update BTB.
 - Control: represent redirect/flush behavior with typed control-state transitions.
 
-## Kotlin Code Style (Project Standard)
+## Code Style (Project Standard)
+### Macro Style (Architecture and Coupling)
+- Every concrete class must implement an interface.
+- Design for testability by default:
+  - Production code depends on interfaces, not implementations.
+  - Add stubs/fakes in `src/testFixtures` only when a real test seam needs them.
+- Prefer wiring components via interfaces at boundaries. Wiring one concrete implementation directly to another creates tighter coupling.
+- Good interface design keeps components loosely coupled and easier to evolve or replace over time.
+- Concrete-to-concrete wiring can be acceptable when it is intentionally local, does not leak across boundaries, and avoids unnecessary abstraction.
+
+### Micro Style (Kotlin Code)
 - Do not use default parameter values in constructors or functions.
 - Never use hard casts with `as`.
 - Do not use `var` unless mutation is strictly required and cannot be expressed immutably.
+- Never use `lateinit var`.
 - Do not use trailing commas.
 - Avoid named arguments by default; use them only when required for disambiguation or readability in ambiguous call sites.
 - Use explicit constructors for fixed initialization requirements (for example explicit zero-initialization).
@@ -94,11 +99,15 @@ Use this file as the default operating guide for contributors and coding agents.
   - In expression-bodied functions, always place the expression on the next line after `=`.
   - Avoid unnecessary explicit return types when type inference is clear and signatures already communicate intent.
   - Avoid temporary locals that only feed a `when`; prefer `when (val value = ...)` or direct expression forms.
-  - For bitfield/immediate assembly, align one bit contribution per line at the same indentation level.
-  - Model instruction format fields faithfully; do not add fields to a format model that are not defined by that format in the ISA.
+  - Prefer consistent alignment in multi-line expressions so related parts are easy to scan.
   - Keep helper extensions/private helpers near call sites.
   - Never use implicit lambda parameters (`it`); always name lambda variables explicitly.
   - Avoid acronyms in Kotlin names where practical (`commonDataBus` over `cdb`).
+
+### Rule Exceptions
+- Rules in this guide are strong defaults, not absolute laws.
+- It is acceptable to break any rule when there is a clear, explicit reason and the tradeoff is understood.
+- When breaking a rule, keep the exception narrow, preserve determinism/testability.
 
 ## State Modeling Rule
 - Model cycle/tick transition semantics at processor-state orchestration level by default.
@@ -114,5 +123,6 @@ Use this file as the default operating guide for contributors and coding agents.
 - Separate consecutive assertion blocks with a blank line.
 - For `ProcessorResult`, use Strikt assertion-builder extensions (`expectThat(result).isSuccess()` / `isFailure()`) from `src/testFixtures`.
 - Prefer behavior-focused test names and edge-case coverage (bounds, endian behavior, shift semantics).
-- Tests must cover all code paths, including edge and failure cases, for each component.
+- Tests must cover all code paths, including boundary and failure cases, for each component.
+- Boundary and failure-case testing is mandatory for all components and is not optional.
 - Use `src/testFixtures` for reusable predictor/test doubles.

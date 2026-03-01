@@ -12,6 +12,14 @@ data object CommonDataBusValueNotPresent : CommonDataBusError
 
 sealed interface MainMemoryError : ProcessorError
 data class MainMemoryAddressOutOfBounds(val address: Int) : MainMemoryError
+data class MainMemoryProgramFileNotFound(val filePath: String) : MainMemoryError
+data class MainMemoryProgramFileReadFailed(val filePath: String) : MainMemoryError
+data class MainMemoryProgramFileEmpty(val filePath: String) : MainMemoryError
+data class MainMemoryProgramFileTooLarge(
+    val filePath: String,
+    val byteCount: Int,
+    val capacityByteCount: Int
+) : MainMemoryError
 
 sealed interface InstructionQueueError : ProcessorError
 data object InstructionQueueFull : InstructionQueueError
