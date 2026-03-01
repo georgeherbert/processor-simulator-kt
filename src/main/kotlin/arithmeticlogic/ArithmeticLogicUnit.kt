@@ -7,7 +7,7 @@ interface ArithmeticLogicUnit {
         operation: ArithmeticLogicOperation,
         leftOperand: Word,
         rightOperand: Word,
-        instructionAddress: Int,
+        instructionAddress: Int
     ): Word
 }
 
@@ -17,7 +17,7 @@ data object RealArithmeticLogicUnit : ArithmeticLogicUnit {
         operation: ArithmeticLogicOperation,
         leftOperand: Word,
         rightOperand: Word,
-        instructionAddress: Int,
+        instructionAddress: Int
     ) =
         when (operation) {
             Add,

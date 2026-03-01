@@ -15,8 +15,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(116u),
-                    writeBack = BranchLinkWriteBack(Word(104u)),
-                ),
+                    writeBack = BranchLinkWriteBack(Word(104u))
+                )
             )
     }
 
@@ -26,8 +26,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(0x10u),
-                    writeBack = BranchLinkWriteBack(Word(0xfffffff4u)),
-                ),
+                    writeBack = BranchLinkWriteBack(Word(0xfffffff4u))
+                )
             )
     }
 
@@ -37,8 +37,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(12u),
-                    writeBack = BranchLinkWriteBack(Word(204u)),
-                ),
+                    writeBack = BranchLinkWriteBack(Word(204u))
+                )
             )
     }
 
@@ -48,8 +48,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(6u),
-                    writeBack = BranchLinkWriteBack(Word(104u)),
-                ),
+                    writeBack = BranchLinkWriteBack(Word(104u))
+                )
             )
     }
 
@@ -59,8 +59,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(0u),
-                    writeBack = BranchLinkWriteBack(Word(0u)),
-                ),
+                    writeBack = BranchLinkWriteBack(Word(0u))
+                )
             )
     }
 
@@ -70,16 +70,16 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchEqual, 8u, 9u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -89,16 +89,16 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchNotEqual, 8u, 8u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -108,24 +108,24 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchLessThanSigned, 5u, 5u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchLessThanSigned, 0x80000000u, 0x7fffffffu, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -135,24 +135,24 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchLessThanUnsigned, 1u, 0xfffffff0u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchLessThanUnsigned, 9u, 9u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -162,24 +162,24 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchGreaterThanOrEqualSigned, 5u, 5u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchGreaterThanOrEqualSigned, 0x7fffffffu, 0x80000000u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -189,24 +189,24 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchGreaterThanOrEqualUnsigned, 1u, 0xfffffff0u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(104u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
 
         expectThat(evaluate(BranchGreaterThanOrEqualUnsigned, 9u, 9u, 12u, 100u))
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(112u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -216,8 +216,8 @@ class BranchEvaluatorTest {
             .isEqualTo(
                 BranchEvaluation(
                     actualNextInstructionAddress = Word(0u),
-                    writeBack = NoBranchWriteBack,
-                ),
+                    writeBack = NoBranchWriteBack
+                )
             )
     }
 
@@ -226,12 +226,12 @@ class BranchEvaluatorTest {
         leftOperand: UInt,
         rightOperand: UInt,
         branchOffset: UInt,
-        instructionAddress: UInt,
+        instructionAddress: UInt
     ) = evaluator.evaluate(
         operation = operation,
         leftOperand = Word(leftOperand),
         rightOperand = Word(rightOperand),
         branchOffset = Word(branchOffset),
-        instructionAddress = Word(instructionAddress),
+        instructionAddress = Word(instructionAddress)
     )
 }

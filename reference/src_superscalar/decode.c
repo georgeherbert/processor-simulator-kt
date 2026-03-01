@@ -558,7 +558,7 @@ void decode_step(struct decode_unit *decode_unit)
 {
     if (inst_queue_free_slots(decode_unit->inst_queue))
     {
-        for (uint8_t i = 0; i < ISSUE_WIDTH; i++)
+        for (uint8_t i = 0; i < ISSUE_WIDTH; i++)hat
         {
             uint32_t inst_pc = reg_read(&decode_unit->reg_inst_pc[i]);
             uint32_t inst = reg_read(&decode_unit->reg_inst[i]);

@@ -220,12 +220,12 @@ class ArithmeticLogicUnitTest {
         operation: ArithmeticLogicOperation,
         leftOperand: UInt,
         rightOperand: UInt,
-        instructionAddress: Int,
+        instructionAddress: Int
     ) =
         arithmeticLogicUnit.evaluate(
             operation = operation,
             leftOperand = Word(leftOperand),
             rightOperand = Word(rightOperand),
-            instructionAddress = instructionAddress,
+            instructionAddress = instructionAddress
         )
 }

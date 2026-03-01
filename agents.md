@@ -72,6 +72,9 @@ Use this file as the default operating guide for contributors and coding agents.
 ## Kotlin Code Style (Project Standard)
 - Do not use default parameter values in constructors or functions.
 - Never use hard casts with `as`.
+- Do not use `var` unless mutation is strictly required and cannot be expressed immutably.
+- Do not use trailing commas.
+- Avoid named arguments by default; use them only when required for disambiguation or readability in ambiguous call sites.
 - Use explicit constructors for fixed initialization requirements (for example explicit zero-initialization).
 - Prefer immutable models:
   - `data class ... private constructor(...)` plus controlled secondary constructors.
@@ -87,7 +90,12 @@ Use this file as the default operating guide for contributors and coding agents.
   - Do not add explicit return types on override methods when the interface already defines the return type.
 - When no stronger domain name is available, use `Real` as the concrete production implementation prefix for interface implementations.
 - Keep logic readable:
-  - Use expression bodies where concise.
+  - Prefer expression-bodied functions (`fun foo() = ...`) instead of block bodies when possible.
+  - In expression-bodied functions, always place the expression on the next line after `=`.
+  - Avoid unnecessary explicit return types when type inference is clear and signatures already communicate intent.
+  - Avoid temporary locals that only feed a `when`; prefer `when (val value = ...)` or direct expression forms.
+  - For bitfield/immediate assembly, align one bit contribution per line at the same indentation level.
+  - Model instruction format fields faithfully; do not add fields to a format model that are not defined by that format in the ISA.
   - Keep helper extensions/private helpers near call sites.
   - Never use implicit lambda parameters (`it`); always name lambda variables explicitly.
   - Avoid acronyms in Kotlin names where practical (`commonDataBus` over `cdb`).

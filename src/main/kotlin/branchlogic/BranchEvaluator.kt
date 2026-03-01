@@ -8,7 +8,7 @@ data class BranchLinkWriteBack(val value: Word) : BranchWriteBack
 
 data class BranchEvaluation(
     val actualNextInstructionAddress: Word,
-    val writeBack: BranchWriteBack,
+    val writeBack: BranchWriteBack
 )
 
 interface BranchEvaluator {
@@ -17,7 +17,7 @@ interface BranchEvaluator {
         leftOperand: Word,
         rightOperand: Word,
         branchOffset: Word,
-        instructionAddress: Word,
+        instructionAddress: Word
     ): BranchEvaluation
 }
 
@@ -28,19 +28,19 @@ data object RealBranchEvaluator : BranchEvaluator {
         leftOperand: Word,
         rightOperand: Word,
         branchOffset: Word,
-        instructionAddress: Word,
+        instructionAddress: Word
     ) =
         when (operation) {
             JumpAndLink ->
                 BranchEvaluation(
                     actualNextInstructionAddress = branchOffset + instructionAddress,
-                    writeBack = BranchLinkWriteBack(instructionAddress.nextSequential()),
+                    writeBack = BranchLinkWriteBack(instructionAddress.nextSequential())
                 )
 
             JumpAndLinkRegister ->
                 BranchEvaluation(
                     actualNextInstructionAddress = (leftOperand + branchOffset).withLeastSignificantBitCleared(),
-                    writeBack = BranchLinkWriteBack(instructionAddress.nextSequential()),
+                    writeBack = BranchLinkWriteBack(instructionAddress.nextSequential())
                 )
 
             BranchEqual ->
@@ -49,7 +49,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
 
             BranchNotEqual ->
@@ -58,7 +58,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
 
             BranchLessThanSigned ->
@@ -67,7 +67,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
 
             BranchLessThanUnsigned ->
@@ -76,7 +76,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
 
             BranchGreaterThanOrEqualSigned ->
@@ -85,7 +85,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
 
             BranchGreaterThanOrEqualUnsigned ->
@@ -94,7 +94,7 @@ data object RealBranchEvaluator : BranchEvaluator {
                         true -> branchOffset + instructionAddress
                         false -> instructionAddress.nextSequential()
                     },
-                    writeBack = NoBranchWriteBack,
+                    writeBack = NoBranchWriteBack
                 )
         }
 

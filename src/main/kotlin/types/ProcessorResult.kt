@@ -16,3 +16,8 @@ data class MainMemoryAddressOutOfBounds(val address: Int) : MainMemoryError
 sealed interface InstructionQueueError : ProcessorError
 data object InstructionQueueFull : InstructionQueueError
 data object InstructionQueueEmpty : InstructionQueueError
+
+sealed interface DecoderError : ProcessorError
+data class DecoderUnknownOpcode(val opcode: Int) : DecoderError
+data class DecoderUnknownFunct3(val opcode: Int, val funct3: Int) : DecoderError
+data class DecoderUnknownFunct7(val opcode: Int, val funct3: Int, val funct7: Int) : DecoderError
