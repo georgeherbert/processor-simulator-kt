@@ -9,6 +9,8 @@ import testfixtures.isFailure
 import testfixtures.isSuccess
 import types.CommonDataBusFull
 import types.CommonDataBusValueNotPresent
+import types.PendingOperand
+import types.ReadyOperand
 import types.RobId
 import types.Size
 import types.Word
@@ -28,6 +30,14 @@ class CommonDataBusTest {
     }
 
     @Test
+    fun `resolveOperand leaves pending operand unchanged when bus has no value`() {
+        val operand = PendingOperand(RobId(1))
+
+        expectThat(RealCommonDataBus(Size(2)).resolveOperand(operand))
+            .isEqualTo(operand)
+    }
+
+    @Test
     fun `write makes value ready and retrievable`() {
         val writeResult = RealCommonDataBus(Size(2))
             .write(RobId(1), Word(42u))
@@ -42,6 +52,18 @@ class CommonDataBusTest {
             .get { valueFor(RobId(1)) }
             .isSuccess()
             .isEqualTo(Word(42u))
+    }
+
+    @Test
+    fun `resolveOperand returns ready operand when bus contains the value`() {
+        val commonDataBus = expectThat(
+            RealCommonDataBus(Size(2)).write(RobId(1), Word(42u))
+        )
+            .isSuccess()
+            .subject
+
+        expectThat(commonDataBus.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(ReadyOperand(Word(42u)))
     }
 
     @Test

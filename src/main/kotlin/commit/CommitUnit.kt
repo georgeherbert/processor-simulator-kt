@@ -6,7 +6,10 @@ import decoder.StoreByteOperation
 import decoder.StoreHalfWordOperation
 import decoder.StoreOperation
 import decoder.StoreWordOperation
-import dev.forkhandles.result4k.*
+import dev.forkhandles.result4k.asFailure
+import dev.forkhandles.result4k.asSuccess
+import dev.forkhandles.result4k.flatMap
+import dev.forkhandles.result4k.map
 import mainmemory.MainMemory
 import mainmemory.MainMemoryStorer
 import registerfile.RegisterFile
@@ -161,10 +164,22 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
             return cycleChanges.asSuccess()
         }
 
-        val headCommitResult = reorderBuffer.commitReadyHead().recover {
-            return cycleChanges.asSuccess()
+        return when (val headCommitOutcome = reorderBuffer.commitReadyHeadIfPossible()) {
+            ReorderBufferCommitReadyHeadUnavailable -> cycleChanges.asSuccess()
+            is ReorderBufferCommitHeadResult ->
+                commitHeadEntry(
+                    remainingCommitSlots,
+                    headCommitOutcome,
+                    cycleChanges
+                )
         }
+    }
 
+    private fun commitHeadEntry(
+        remainingCommitSlots: Int,
+        headCommitResult: ReorderBufferCommitHeadResult,
+        cycleChanges: CommitCycleDelta
+    ): ProcessorResult<CommitCycleDelta> {
         val committedEntry = headCommitResult.entry
 
         return when (committedEntry) {

@@ -133,6 +133,31 @@ class InstructionQueueTest {
     }
 
     @Test
+    fun `dequeueIfPresent returns unavailable when queue is empty`() {
+        val instructionQueue = RealInstructionQueue(Size(2))
+
+        expectThat(instructionQueue.dequeueIfPresent())
+            .isEqualTo(InstructionQueueDequeueUnavailable)
+    }
+
+    @Test
+    fun `dequeueIfPresent returns the first entry without using failure semantics`() {
+        val instructionQueue = expectThat(
+            RealInstructionQueue(Size(2)).enqueue(entry(0))
+        )
+            .isSuccess()
+            .subject
+
+        expectThat(instructionQueue.dequeueIfPresent())
+            .isEqualTo(
+                InstructionQueueDequeueResult(
+                    RealInstructionQueue(Size(2)),
+                    entry(0)
+                )
+            )
+    }
+
+    @Test
     fun `clear empties queue`() {
         val enqueueResult = RealInstructionQueue(Size(2))
             .enqueue(entry(0))

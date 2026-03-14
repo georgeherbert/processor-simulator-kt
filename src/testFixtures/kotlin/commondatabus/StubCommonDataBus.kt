@@ -1,5 +1,7 @@
 package commondatabus
 
+import dev.forkhandles.result4k.Failure
+import dev.forkhandles.result4k.Success
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import types.*
@@ -14,6 +16,13 @@ data class StubCommonDataBus(
 
     override fun write(robId: RobId, value: Word) =
         CommonDataBusFull.asFailure()
+
+    override fun resolveOperand(operand: PendingOperand) =
+        when (val valueResult = valuesByRobId[operand.robId]) {
+            null -> operand
+            is Failure -> operand
+            is Success -> ReadyOperand(valueResult.value)
+        }
 
     override fun isValueReady(robId: RobId) =
         valuesByRobId.containsKey(robId)

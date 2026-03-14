@@ -1,7 +1,6 @@
 package reservationstation
 
 import commondatabus.StubCommonDataBus
-import dev.forkhandles.result4k.asFailure
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
@@ -143,7 +142,7 @@ class ReservationStationBankTest {
     }
 
     @Test
-    fun `accept common data bus leaves pending operands unresolved when the value lookup fails`() {
+    fun `accept common data bus leaves pending operands unresolved when the value is unavailable`() {
         val reservationStationBank = expectThat(
             RealReservationStationBank<String>(Size(1)).enqueue(
                 "or",
@@ -156,7 +155,7 @@ class ReservationStationBankTest {
         )
             .isSuccess()
             .subject
-        val commonDataBus = FailingCommonDataBus
+        val commonDataBus = StubCommonDataBus()
 
         expectThat(
             reservationStationBank
@@ -189,15 +188,4 @@ class ReservationStationBankTest {
             .isEqualTo(1)
     }
 
-    private data object FailingCommonDataBus : commondatabus.CommonDataBus {
-        override fun write(robId: RobId, value: Word) =
-            CommonDataBusFull.asFailure()
-
-        override fun isValueReady(robId: RobId) = true
-
-        override fun valueFor(robId: RobId) =
-            CommonDataBusFull.asFailure()
-
-        override fun clear() = this
-    }
 }

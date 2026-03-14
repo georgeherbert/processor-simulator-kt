@@ -4,6 +4,7 @@ import commondatabus.StubCommonDataBus
 import decoder.StoreWordOperation
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
+import strikt.assertions.isA
 import strikt.assertions.isEqualTo
 import strikt.assertions.isFalse
 import strikt.assertions.isTrue
@@ -50,6 +51,88 @@ class ReorderBufferTest {
                     ReadyOperand(Word(42u))
                 )
             )
+    }
+
+    @Test
+    fun `resolveOperand returns pending operand when reorder buffer value is unresolved`() {
+        val allocationResult = expectThat(
+            RealReorderBuffer(Size(1)).enqueueRegisterWrite(
+                RegisterAddress(1),
+                ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+            )
+        )
+            .isSuccess()
+            .subject
+        val operand = PendingOperand(allocationResult.robId)
+
+        expectThat(allocationResult.reorderBuffer.resolveOperand(operand))
+            .isEqualTo(operand)
+    }
+
+    @Test
+    fun `resolveOperand returns ready operand when reorder buffer value is resolved`() {
+        val allocationResult = expectThat(
+            RealReorderBuffer(Size(1)).enqueueRegisterWrite(
+                RegisterAddress(1),
+                ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+            )
+        )
+            .isSuccess()
+            .subject
+        val readyReorderBuffer = allocationResult.reorderBuffer.acceptCommonDataBus(
+            StubCommonDataBus(allocationResult.robId, Word(42u))
+        )
+
+        expectThat(readyReorderBuffer.resolveOperand(PendingOperand(allocationResult.robId)))
+            .isEqualTo(ReadyOperand(Word(42u)))
+    }
+
+    @Test
+    fun `commitReadyHeadIfPossible returns unavailable when no ready head exists`() {
+        val allocationResult = expectThat(
+            RealReorderBuffer(Size(1)).enqueueRegisterWrite(
+                RegisterAddress(1),
+                ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+            )
+        )
+            .isSuccess()
+            .subject
+
+        expectThat(allocationResult.reorderBuffer.commitReadyHeadIfPossible())
+            .isEqualTo(ReorderBufferCommitReadyHeadUnavailable)
+    }
+
+    @Test
+    fun `commitReadyHeadIfPossible returns the ready head when commit can proceed`() {
+        val allocationResult = expectThat(
+            RealReorderBuffer(Size(1)).enqueueRegisterWrite(
+                RegisterAddress(1),
+                ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+            )
+        )
+            .isSuccess()
+            .subject
+        val readyReorderBuffer = allocationResult.reorderBuffer.acceptCommonDataBus(
+            StubCommonDataBus(allocationResult.robId, Word(42u))
+        )
+        val commitReadyHeadOutcome = readyReorderBuffer.commitReadyHeadIfPossible()
+
+        expectThat(commitReadyHeadOutcome)
+            .isA<ReorderBufferCommitHeadResult>()
+            .get { entry }
+            .isEqualTo(
+                RegisterWriteReorderBufferEntry(
+                    allocationResult.robId,
+                    RegisterAddress(1),
+                    ArithmeticLogicRegisterWriteReorderBufferEntryCategory,
+                    ReadyOperand(Word(42u))
+                )
+            )
+
+        expectThat(commitReadyHeadOutcome)
+            .isA<ReorderBufferCommitHeadResult>()
+            .get { reorderBuffer.entryCount() }
+            .isEqualTo(0)
     }
 
     @Test

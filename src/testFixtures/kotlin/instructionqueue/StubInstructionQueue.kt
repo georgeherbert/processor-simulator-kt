@@ -11,14 +11,20 @@ data class StubInstructionQueue(
     override fun enqueue(entry: InstructionQueueEntry) =
         copy(entries = entries + entry).asSuccess()
 
-    override fun dequeue() =
+    override fun dequeueIfPresent() =
         when (entries.isEmpty()) {
-            true -> InstructionQueueEmpty.asFailure()
+            true -> InstructionQueueDequeueUnavailable
             false ->
                 InstructionQueueDequeueResult(
                     StubInstructionQueue(entries.drop(1)),
                     entries.first()
-                ).asSuccess()
+                )
+        }
+
+    override fun dequeue() =
+        when (val dequeueOutcome = dequeueIfPresent()) {
+            is InstructionQueueDequeueResult -> dequeueOutcome.asSuccess()
+            InstructionQueueDequeueUnavailable -> InstructionQueueEmpty.asFailure()
         }
 
     override fun clear() = StubInstructionQueue(emptyList())

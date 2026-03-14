@@ -4,8 +4,6 @@ import commondatabus.CommonDataBus
 import decoder.StoreOperation
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
-import dev.forkhandles.result4k.map
-import dev.forkhandles.result4k.recover
 import types.*
 
 interface ReorderBuffer {
@@ -39,9 +37,11 @@ interface ReorderBuffer {
         actualNextInstructionAddress: InstructionAddress
     ): ReorderBuffer
 
+    fun resolveOperand(operand: PendingOperand): Operand
     fun hasResolvedValue(robId: RobId): Boolean
     fun valueFor(robId: RobId): ProcessorResult<Word>
     fun hasEarlierStore(robId: RobId, address: DataAddress): Boolean
+    fun commitReadyHeadIfPossible(): ReorderBufferCommitReadyHeadOutcome
     fun commitReadyHead(): ProcessorResult<ReorderBufferCommitHeadResult>
     fun clear(): ReorderBuffer
 }
@@ -54,7 +54,11 @@ data class ReorderBufferAllocationResult(
 data class ReorderBufferCommitHeadResult(
     val reorderBuffer: ReorderBuffer,
     val entry: ReorderBufferEntry
-)
+) : ReorderBufferCommitReadyHeadOutcome
+
+sealed interface ReorderBufferCommitReadyHeadOutcome
+
+data object ReorderBufferCommitReadyHeadUnavailable : ReorderBufferCommitReadyHeadOutcome
 
 sealed interface ReorderBufferEntry {
     val robId: RobId
@@ -194,19 +198,20 @@ data class RealReorderBuffer private constructor(
             }
         )
 
+    override fun resolveOperand(operand: PendingOperand) =
+        when (val resolvedValue = entryFor(operand.robId)?.resolvedValue()) {
+            null -> operand
+            else -> ReadyOperand(resolvedValue)
+        }
+
     override fun hasResolvedValue(robId: RobId) =
-        entries
-            .firstOrNull { entry -> entry.robId == robId }
-            ?.resolvedValue()
-            ?.let { true }
-            ?: false
+        entryFor(robId)?.resolvedValue() != null
 
     override fun valueFor(robId: RobId) =
-        entries
-            .firstOrNull { entry -> entry.robId == robId }
-            ?.resolvedValue()
-            ?.asSuccess()
-            ?: ReorderBufferValueNotReady(robId).asFailure()
+        when (val resolvedValue = entryFor(robId)?.resolvedValue()) {
+            null -> ReorderBufferValueNotReady(robId).asFailure()
+            else -> resolvedValue.asSuccess()
+        }
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) =
         entries
@@ -214,15 +219,25 @@ data class RealReorderBuffer private constructor(
             .filterIsInstance<StoreReorderBufferEntry>()
             .any { entry -> entry.address == address }
 
-    override fun commitReadyHead() =
+    override fun commitReadyHeadIfPossible() =
         when {
-            entries.isEmpty() -> ReorderBufferEmpty.asFailure()
-            !entries.first().isReady() -> ReorderBufferHeadNotReady.asFailure()
+            entries.isEmpty() -> ReorderBufferCommitReadyHeadUnavailable
+            !entries.first().isReady() -> ReorderBufferCommitReadyHeadUnavailable
             else ->
                 ReorderBufferCommitHeadResult(
                     copy(entries = entries.drop(1)),
                     entries.first()
-                ).asSuccess()
+                )
+        }
+
+    override fun commitReadyHead() =
+        when (val commitReadyHeadOutcome = commitReadyHeadIfPossible()) {
+            is ReorderBufferCommitHeadResult -> commitReadyHeadOutcome.asSuccess()
+            ReorderBufferCommitReadyHeadUnavailable ->
+                when {
+                    entries.isEmpty() -> ReorderBufferEmpty.asFailure()
+                    else -> ReorderBufferHeadNotReady.asFailure()
+                }
         }
 
     override fun clear() = copy(entries = emptyList())
@@ -234,6 +249,9 @@ data class RealReorderBuffer private constructor(
         }
 
     private fun nextRobId() = RobId(nextRobIdValue)
+
+    private fun entryFor(robId: RobId) =
+        entries.firstOrNull { entry -> entry.robId == robId }
 
     private fun ReorderBufferEntry.withResolvedOperands(commonDataBus: CommonDataBus): ReorderBufferEntry =
         when (this) {
@@ -264,13 +282,6 @@ data class RealReorderBuffer private constructor(
     private fun Operand.resolved(commonDataBus: CommonDataBus): Operand =
         when (this) {
             is ReadyOperand -> this
-            is PendingOperand ->
-                when (commonDataBus.isValueReady(robId)) {
-                    true ->
-                        commonDataBus.valueFor(robId)
-                            .map { value -> ReadyOperand(value) }
-                            .recover { this@resolved }
-                    false -> this
-                }
+            is PendingOperand -> commonDataBus.resolveOperand(this)
         }
 }

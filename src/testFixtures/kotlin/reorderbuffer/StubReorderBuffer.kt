@@ -151,6 +151,11 @@ data class StubReorderBuffer private constructor(
         actualNextInstructionAddress: InstructionAddress
     ) = this
 
+    override fun resolveOperand(operand: PendingOperand) =
+        resolvedValuesByRobId[operand.robId]
+            ?.let { value -> ReadyOperand(value) }
+            ?: operand
+
     override fun hasResolvedValue(robId: RobId) =
         resolvedValuesByRobId.containsKey(robId)
 
@@ -160,6 +165,8 @@ data class StubReorderBuffer private constructor(
             ?: ReorderBufferValueNotReady(robId).asFailure()
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) = false
+
+    override fun commitReadyHeadIfPossible() = ReorderBufferCommitReadyHeadUnavailable
 
     override fun commitReadyHead() = ReorderBufferEmpty.asFailure()
 

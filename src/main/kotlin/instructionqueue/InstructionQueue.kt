@@ -9,6 +9,7 @@ import types.Size
 
 interface InstructionQueue {
     fun enqueue(entry: InstructionQueueEntry): ProcessorResult<InstructionQueue>
+    fun dequeueIfPresent(): InstructionQueueDequeueOutcome
     fun dequeue(): ProcessorResult<InstructionQueueDequeueResult>
     fun clear(): InstructionQueue
     fun entryCount(): Int
@@ -28,10 +29,16 @@ data class RealInstructionQueue private constructor(
             false -> copy(entries = entries + entry).asSuccess()
         }
 
-    override fun dequeue() =
+    override fun dequeueIfPresent() =
         when (entries.isEmpty()) {
-            true -> InstructionQueueEmpty.asFailure()
-            false -> InstructionQueueDequeueResult(copy(entries = entries.drop(1)), entries.first()).asSuccess()
+            true -> InstructionQueueDequeueUnavailable
+            false -> InstructionQueueDequeueResult(copy(entries = entries.drop(1)), entries.first())
+        }
+
+    override fun dequeue() =
+        when (val dequeueOutcome = dequeueIfPresent()) {
+            is InstructionQueueDequeueResult -> dequeueOutcome.asSuccess()
+            InstructionQueueDequeueUnavailable -> InstructionQueueEmpty.asFailure()
         }
 
     override fun clear() = copy(entries = emptyList())

@@ -7,6 +7,8 @@ import cpu.IssueWidth
 import decoder.*
 import dev.forkhandles.result4k.*
 import instructionqueue.InstructionQueue
+import instructionqueue.InstructionQueueDequeueResult
+import instructionqueue.InstructionQueueDequeueUnavailable
 import memorybuffer.LoadMemoryBufferOperation
 import memorybuffer.MemoryBufferOperation
 import memorybuffer.MemoryBufferQueue
@@ -230,6 +232,7 @@ data class RealIssueUnit(private val issueWidth: IssueWidth) : IssueUnit {
             instructionDecoder,
             IssueAccumulation(
                 instructionQueue,
+                instructionDecoder,
                 registerFile,
                 reorderBuffer,
                 arithmeticLogicReservationStations,
@@ -248,51 +251,81 @@ data class RealIssueUnit(private val issueWidth: IssueWidth) : IssueUnit {
             return accumulation.cycleChanges.asSuccess()
         }
 
-        val dequeueResult = accumulation.instructionQueue.dequeue().recover {
-            return accumulation.cycleChanges.asSuccess()
+        return when (val dequeueOutcome = accumulation.instructionQueue.dequeueIfPresent()) {
+            InstructionQueueDequeueUnavailable -> accumulation.cycleChanges.asSuccess()
+            is InstructionQueueDequeueResult -> issueDequeuedInstruction(
+                remainingIssueSlots,
+                instructionDecoder,
+                accumulation,
+                dequeueOutcome
+            )
         }
+    }
 
+    private fun issueDequeuedInstruction(
+        remainingIssueSlots: Int,
+        instructionDecoder: InstructionDecoder,
+        accumulation: IssueAccumulation,
+        dequeueResult: InstructionQueueDequeueResult
+    ): ProcessorResult<IssueCycleDelta> {
         val queueEntry = dequeueResult.entry
-
-        val decodedInstruction = instructionDecoder.decode(
+        val decodedInstructionResult = instructionDecoder.decode(
             queueEntry.instruction,
             queueEntry.instructionAddress.asWord(),
             queueEntry.predictedNextInstructionAddress.asWord()
-        ).recover { error ->
-            return error.asFailure()
-        }
-
-        val issuedInstructionResult = issueDecodedInstruction(
-            decodedInstruction,
-            accumulation.registerFile,
-            accumulation.reorderBuffer,
-            accumulation.arithmeticLogicReservationStations,
-            accumulation.branchReservationStations,
-            accumulation.memoryBufferQueue
-        ).recover { error ->
-            return when (error) {
-                ReorderBufferFull,
-                ReservationStationFull,
-                MemoryBufferFull -> accumulation.cycleChanges.asSuccess()
-
-                else -> error.asFailure()
-            }
-        }
-
-        return issueInstructions(
-            remainingIssueSlots - 1,
-            instructionDecoder,
-            IssueAccumulation(
-                dequeueResult.instructionQueue,
-                issuedInstructionResult.registerFile,
-                issuedInstructionResult.reorderBuffer,
-                issuedInstructionResult.arithmeticLogicReservationStations,
-                issuedInstructionResult.branchReservationStations,
-                issuedInstructionResult.memoryBufferQueue,
-                accumulation.cycleChanges.mergedWith(issuedInstructionResult.cycleChanges)
-            )
         )
+
+        return when (decodedInstructionResult) {
+            is Failure -> decodedInstructionResult
+            is Success ->
+                continueIssueInstructions(
+                    remainingIssueSlots,
+                    accumulation,
+                    dequeueResult,
+                    issueDecodedInstruction(
+                        decodedInstructionResult.value,
+                        accumulation.registerFile,
+                        accumulation.reorderBuffer,
+                        accumulation.arithmeticLogicReservationStations,
+                        accumulation.branchReservationStations,
+                        accumulation.memoryBufferQueue
+                    )
+                )
+        }
     }
+
+    private fun continueIssueInstructions(
+        remainingIssueSlots: Int,
+        accumulation: IssueAccumulation,
+        dequeueResult: InstructionQueueDequeueResult,
+        issuedInstructionResult: ProcessorResult<IssueWorkingState>
+    ): ProcessorResult<IssueCycleDelta> =
+        when (issuedInstructionResult) {
+            is Failure ->
+                when (issuedInstructionResult.reason) {
+                    ReorderBufferFull,
+                    ReservationStationFull,
+                    MemoryBufferFull -> accumulation.cycleChanges.asSuccess()
+
+                    else -> issuedInstructionResult
+                }
+
+            is Success ->
+                issueInstructions(
+                    remainingIssueSlots - 1,
+                    accumulation.instructionDecoder,
+                    IssueAccumulation(
+                        dequeueResult.instructionQueue,
+                        accumulation.instructionDecoder,
+                        issuedInstructionResult.value.registerFile,
+                        issuedInstructionResult.value.reorderBuffer,
+                        issuedInstructionResult.value.arithmeticLogicReservationStations,
+                        issuedInstructionResult.value.branchReservationStations,
+                        issuedInstructionResult.value.memoryBufferQueue,
+                        accumulation.cycleChanges.mergedWith(issuedInstructionResult.value.cycleChanges)
+                    )
+                )
+        }
 
     private fun issueDecodedInstruction(
         decodedInstruction: DecodedInstruction,
@@ -709,15 +742,7 @@ data class RealIssueUnit(private val issueWidth: IssueWidth) : IssueUnit {
     ) =
         when (val operand = registerFile.operandFor(registerAddress)) {
             is ReadyOperand -> operand
-            is PendingOperand ->
-                when (reorderBuffer.hasResolvedValue(operand.robId)) {
-                    true ->
-                        reorderBuffer.valueFor(operand.robId)
-                            .map { value -> ReadyOperand(value) }
-                            .recover { operand }
-
-                    false -> operand
-                }
+            is PendingOperand -> reorderBuffer.resolveOperand(operand)
         }
 
     private fun arithmeticOperationFor(operation: ArithmeticImmediateOperation) =
@@ -763,6 +788,7 @@ data class RealIssueUnit(private val issueWidth: IssueWidth) : IssueUnit {
 
     private data class IssueAccumulation(
         val instructionQueue: InstructionQueue,
+        val instructionDecoder: InstructionDecoder,
         val registerFile: RegisterFile,
         val reorderBuffer: ReorderBuffer,
         val arithmeticLogicReservationStations: ReservationStationBank<ArithmeticLogicOperation>,

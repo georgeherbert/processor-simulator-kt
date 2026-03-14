@@ -6,6 +6,7 @@ import types.*
 
 interface CommonDataBus {
     fun write(robId: RobId, value: Word): ProcessorResult<CommonDataBus>
+    fun resolveOperand(operand: PendingOperand): Operand
     fun isValueReady(robId: RobId): Boolean
     fun valueFor(robId: RobId): ProcessorResult<Word>
     fun clear(): CommonDataBus
@@ -29,18 +30,24 @@ data class RealCommonDataBus private constructor(
             }
             .let { writeResult: ProcessorResult<CommonDataBus> -> writeResult }
 
-    override fun isValueReady(robId: RobId) = entries.any { entry -> entry?.robId == robId }
-
-    override fun valueFor(robId: RobId) =
+    override fun resolveOperand(operand: PendingOperand) =
         entries
             .firstNotNullOfOrNull { entry ->
                 when (entry?.robId) {
-                    robId -> entry.value.asSuccess()
+                    operand.robId -> ReadyOperand(entry.value)
                     else -> null
                 }
             }
-            ?: CommonDataBusValueNotPresent.asFailure()
-            .let { valueResult: ProcessorResult<Word> -> valueResult }
+            ?: operand
+
+    override fun isValueReady(robId: RobId) =
+        resolveOperand(PendingOperand(robId)) is ReadyOperand
+
+    override fun valueFor(robId: RobId) =
+        when (val resolvedOperand = resolveOperand(PendingOperand(robId))) {
+            is ReadyOperand -> resolvedOperand.value.asSuccess()
+            is PendingOperand -> CommonDataBusValueNotPresent.asFailure()
+        }
 
     override fun clear() = copy(entries = entries.map { null })
 

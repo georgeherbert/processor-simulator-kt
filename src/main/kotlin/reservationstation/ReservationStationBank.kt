@@ -3,8 +3,6 @@ package reservationstation
 import commondatabus.CommonDataBus
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
-import dev.forkhandles.result4k.map
-import dev.forkhandles.result4k.recover
 import types.*
 
 interface ReservationStationBank<Operation> {
@@ -118,15 +116,7 @@ data class RealReservationStationBank<Operation> private constructor(
     private fun Operand.resolved(commonDataBus: CommonDataBus): Operand =
         when (this) {
             is ReadyOperand -> this
-            is PendingOperand ->
-                when (commonDataBus.isValueReady(robId)) {
-                    true ->
-                        commonDataBus.valueFor(robId)
-                            .map { value -> ReadyOperand(value) }
-                            .recover { this@resolved }
-
-                    false -> this
-                }
+            is PendingOperand -> commonDataBus.resolveOperand(this)
         }
 
     private fun ReservationStationEntry<Operation>.toReadyEntryOrNull() =

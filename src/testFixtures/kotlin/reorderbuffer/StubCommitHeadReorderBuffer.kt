@@ -50,12 +50,20 @@ data class StubCommitHeadReorderBuffer(
         actualNextInstructionAddress: InstructionAddress
     ) = this
 
+    override fun resolveOperand(operand: PendingOperand) = operand
+
     override fun hasResolvedValue(robId: RobId) = false
 
     override fun valueFor(robId: RobId) =
         ReorderBufferValueNotReady(robId).asFailure()
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) = false
+
+    override fun commitReadyHeadIfPossible() =
+        when (entries.isEmpty()) {
+            true -> ReorderBufferCommitReadyHeadUnavailable
+            false -> ReorderBufferCommitHeadResult(copy(entries = entries.drop(1)), entries.first())
+        }
 
     override fun commitReadyHead() =
         when (entries.isEmpty()) {

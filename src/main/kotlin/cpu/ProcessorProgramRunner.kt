@@ -2,8 +2,9 @@ package cpu
 
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
+import dev.forkhandles.result4k.Failure
+import dev.forkhandles.result4k.Success
 import dev.forkhandles.result4k.flatMap
-import dev.forkhandles.result4k.recover
 import mainmemory.MainMemoryProgramLoader
 import mainmemory.RealMainMemoryProgramLoader
 import types.InstructionAddress
@@ -73,17 +74,16 @@ data class RealProcessorProgramRunner(
         when {
             currentState.halted -> ProcessorProgramRunResult(currentState).asSuccess()
             remainingCycleBudget <= 0 -> ProcessorCycleLimitExceeded(maxCycleCount).asFailure()
-            else -> {
-                val nextState = processor.step(currentState).recover { error ->
-                    return error.asFailure()
+            else ->
+                when (val nextStateResult = processor.step(currentState)) {
+                    is Failure -> nextStateResult.reason.asFailure()
+                    is Success ->
+                        runUntilCompletion(
+                            processor,
+                            nextStateResult.value,
+                            remainingCycleBudget - 1,
+                            maxCycleCount
+                        )
                 }
-
-                runUntilCompletion(
-                    processor,
-                    nextState,
-                    remainingCycleBudget - 1,
-                    maxCycleCount
-                )
-            }
         }
 }
