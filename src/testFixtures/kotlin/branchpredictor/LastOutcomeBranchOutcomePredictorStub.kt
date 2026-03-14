@@ -8,7 +8,7 @@ class LastOutcomeBranchOutcomePredictorStub private constructor(
     constructor() : this(null)
 
     override fun predict(instructionAddress: InstructionAddress) =
-        outcome ?: throw IllegalStateException("No outcome for $instructionAddress")
+        outcome ?: false
 
     override fun outcome(instructionAddress: InstructionAddress, taken: Boolean) =
         LastOutcomeBranchOutcomePredictorStub(taken)

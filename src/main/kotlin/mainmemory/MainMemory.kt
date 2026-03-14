@@ -1,3 +1,3 @@
 package mainmemory
 
-interface MainMemory : MainMemoryLoader, MainMemoryStorer
+interface MainMemory : MainMemoryLoader, MainMemoryStorer<MainMemory>

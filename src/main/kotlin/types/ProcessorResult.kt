@@ -6,6 +6,11 @@ typealias ProcessorResult<T> = Result<T, ProcessorError>
 
 sealed interface ProcessorError
 
+sealed interface ValidationError : ProcessorError
+data class BranchTargetBufferSizeInvalid(val size: Int) : ValidationError
+data class BranchOutcomeBufferSizeInvalid(val size: Int) : ValidationError
+data class BranchOutcomePredictorBitWidthInvalid(val bitWidth: Int) : ValidationError
+
 sealed interface CommonDataBusError : ProcessorError
 data object CommonDataBusFull : CommonDataBusError
 data object CommonDataBusValueNotPresent : CommonDataBusError
@@ -24,6 +29,38 @@ data class MainMemoryProgramFileTooLarge(
 sealed interface InstructionQueueError : ProcessorError
 data object InstructionQueueFull : InstructionQueueError
 data object InstructionQueueEmpty : InstructionQueueError
+data class InstructionQueueSlotCountInvalid(val count: Int) : InstructionQueueError
+
+sealed interface ReorderBufferError : ProcessorError
+data object ReorderBufferFull : ReorderBufferError
+data object ReorderBufferEmpty : ReorderBufferError
+data object ReorderBufferHeadNotReady : ReorderBufferError
+data class ReorderBufferValueNotReady(val robId: RobId) : ReorderBufferError
+
+sealed interface ReservationStationError : ProcessorError
+data object ReservationStationFull : ReservationStationError
+
+sealed interface MemoryBufferError : ProcessorError
+data object MemoryBufferFull : MemoryBufferError
+
+sealed interface CommitError : ProcessorError
+data class CommitEntryValueUnavailable(val robId: RobId) : CommitError
+data class CommitEntryAddressUnavailable(val robId: RobId) : CommitError
+data class CommitEntryActualNextInstructionAddressUnavailable(val robId: RobId) : CommitError
+
+sealed interface ProcessorExecutionError : ProcessorError
+data object ProcessorAlreadyHalted : ProcessorExecutionError
+data class ProcessorCycleLimitExceeded(val maxCycleCount: Int) : ProcessorExecutionError
+
+sealed interface ToolchainError : ProcessorError
+data class ExternalToolExecutionFailed(
+    val executable: String,
+    val exitCode: Int,
+    val standardError: String,
+) : ToolchainError
+data class ExternalToolProcessLaunchFailed(val executable: String) : ToolchainError
+data class ExternalToolExecutionInterrupted(val executable: String) : ToolchainError
+data class TemporaryPathCreateFailed(val pathDescription: String) : ToolchainError
 
 sealed interface DecoderError : ProcessorError
 data class DecoderUnknownOpcode(val opcode: Int) : DecoderError

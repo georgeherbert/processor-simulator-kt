@@ -1,29 +1,28 @@
 package branchpredictor
 
 import org.junit.jupiter.api.Test
-import strikt.api.expectCatching
 import strikt.api.expectThat
-import strikt.assertions.*
-import types.BitWidth
-import types.InstructionAddress
-import types.Size
+import strikt.assertions.isEqualTo
+import strikt.assertions.isFalse
+import strikt.assertions.isTrue
+import testfixtures.isFailure
+import testfixtures.isSuccess
+import types.*
 
 class SaturatingCounterBranchOutcomeBufferTest {
 
     @Test
     fun `cannot create a buffer with zero entries`() {
-        expectCatching { buffer(Size(0), BitWidth(1)) }
+        expectThat(bufferResult(Size(0), BitWidth(1)))
             .isFailure()
-            .isA<IllegalArgumentException>()
-            .get { message }.isNotNull().isEqualTo("Size must be greater than 0")
+            .isEqualTo(BranchOutcomeBufferSizeInvalid(0))
     }
 
     @Test
     fun `cannot create a buffer with a zero bit width`() {
-        expectCatching { buffer(Size(1), BitWidth(0)) }
+        expectThat(bufferResult(Size(1), BitWidth(0)))
             .isFailure()
-            .isA<IllegalArgumentException>()
-            .get { message }.isNotNull().isEqualTo("Bit width must be greater than 0")
+            .isEqualTo(BranchOutcomePredictorBitWidthInvalid(0))
     }
 
     @Test
@@ -122,5 +121,11 @@ class SaturatingCounterBranchOutcomeBufferTest {
         ).isFalse()
     }
 
-    private fun buffer(size: Size, bitWidth: BitWidth) = SaturatingCounterBranchOutcomeBuffer(size, bitWidth)
+    private fun buffer(size: Size, bitWidth: BitWidth) =
+        expectThat(bufferResult(size, bitWidth))
+            .isSuccess()
+            .subject
+
+    private fun bufferResult(size: Size, bitWidth: BitWidth) =
+        SaturatingCounterBranchOutcomeBuffer.create(size, bitWidth)
 }

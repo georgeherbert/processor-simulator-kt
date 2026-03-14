@@ -1,9 +1,14 @@
 package branchpredictor
 
 import org.junit.jupiter.api.Test
-import strikt.api.expectCatching
 import strikt.api.expectThat
-import strikt.assertions.*
+import strikt.assertions.isEqualTo
+import strikt.assertions.isFalse
+import strikt.assertions.isNotEqualTo
+import strikt.assertions.isTrue
+import testfixtures.isFailure
+import testfixtures.isSuccess
+import types.BranchTargetBufferSizeInvalid
 import types.InstructionAddress
 import types.Size
 import types.next
@@ -12,10 +17,9 @@ class BranchTargetBufferTest {
 
     @Test
     fun `cannot create a buffer with zero entries`() {
-        expectCatching { buffer(Size(0), alwaysTakenPredictor) }
+        expectThat(bufferResult(Size(0), alwaysTakenPredictor))
             .isFailure()
-            .isA<IllegalArgumentException>()
-            .get { message }.isNotNull().isEqualTo("Size must be greater than 0")
+            .isEqualTo(BranchTargetBufferSizeInvalid(0))
     }
 
     @Test
@@ -92,24 +96,30 @@ class BranchTargetBufferTest {
 
     @Test
     fun `reports not taken to the outcome predictor if the target instruction address is the next instruction`() {
-        var outcome: Boolean? = null
+        val outcomes = mutableListOf<Boolean>()
 
         val instructionAddress = InstructionAddress(0)
-        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcome = callbackOutcome })
+        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcomes += callbackOutcome })
             .outcome(instructionAddress, instructionAddress.next)
 
-        expectThat(outcome).isFalse()
+        expectThat(outcomes.single()).isFalse()
     }
 
     @Test
     fun `reports taken to the outcome predictor if the target instruction address is not the next instruction`() {
-        var outcome: Boolean? = null
+        val outcomes = mutableListOf<Boolean>()
 
-        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcome = callbackOutcome })
+        buffer(Size(1), CallbackBranchOutcomePredictorStub { callbackOutcome -> outcomes += callbackOutcome })
             .outcome(InstructionAddress(0), InstructionAddress(42))
 
-        expectThat(outcome).isTrue()
+        expectThat(outcomes.single()).isTrue()
     }
 
-    private fun buffer(size: Size, predictor: DynamicBranchOutcomePredictor) = BranchTargetBuffer(size, predictor)
+    private fun buffer(size: Size, predictor: DynamicBranchOutcomePredictor) =
+        expectThat(bufferResult(size, predictor))
+            .isSuccess()
+            .subject
+
+    private fun bufferResult(size: Size, predictor: DynamicBranchOutcomePredictor) =
+        BranchTargetBuffer.create(size, predictor)
 }

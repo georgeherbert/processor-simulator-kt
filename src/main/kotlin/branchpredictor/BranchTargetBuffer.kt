@@ -1,21 +1,23 @@
 package branchpredictor
 
-import types.InstructionAddress
-import types.Size
-import types.next
+import dev.forkhandles.result4k.asFailure
+import dev.forkhandles.result4k.asSuccess
+import types.*
 
 @ConsistentCopyVisibility
 data class BranchTargetBuffer private constructor(
     private val entries: List<Entry?>,
     private val branchOutcomePredictor: DynamicBranchOutcomePredictor,
 ) : DynamicBranchTargetPredictor {
-    constructor(
-        size: Size,
-        branchOutcomePredictor: DynamicBranchOutcomePredictor,
-    ) : this(List(size.value) { null }, branchOutcomePredictor)
-
-    init {
-        require(entries.isNotEmpty()) { "Size must be greater than 0" }
+    companion object {
+        fun create(
+            size: Size,
+            branchOutcomePredictor: DynamicBranchOutcomePredictor,
+        ): ProcessorResult<BranchTargetBuffer> =
+            when (size.value <= 0) {
+                true -> BranchTargetBufferSizeInvalid(size.value).asFailure()
+                false -> BranchTargetBuffer(List(size.value) { null }, branchOutcomePredictor).asSuccess()
+            }
     }
 
     override fun predict(instructionAddress: InstructionAddress) =
@@ -48,7 +50,7 @@ data class BranchTargetBuffer private constructor(
     private fun List<Entry?>.withEntry(entry: Entry) =
         toMutableList().apply { this[entry.instructionAddress.index] = entry }
 
-    private val InstructionAddress.index get() = (value / 4) % entries.size
+    private val InstructionAddress.index get() = ((value / 4) % entries.size + entries.size) % entries.size
 
     private data class Entry(
         val instructionAddress: InstructionAddress,

@@ -1,9 +1,8 @@
 package branchpredictor
 
-import types.BitWidth
-import types.InstructionAddress
-import types.Size
-import types.max
+import dev.forkhandles.result4k.asFailure
+import dev.forkhandles.result4k.asSuccess
+import types.*
 
 @ConsistentCopyVisibility
 private data class SaturatingCounter private constructor(private val value: Int, private val bitWidth: BitWidth) {
@@ -20,11 +19,13 @@ data class SaturatingCounterBranchOutcomeBuffer private constructor(
     private val entries: List<Entry?>,
     private val bitWidth: BitWidth,
 ) : DynamicBranchOutcomePredictor {
-    constructor(size: Size, bitWidth: BitWidth) : this(List(size.value) { null }, bitWidth)
-
-    init {
-        require(entries.isNotEmpty()) { "Size must be greater than 0" }
-        require(bitWidth.value > 0) { "Bit width must be greater than 0" }
+    companion object {
+        fun create(size: Size, bitWidth: BitWidth): ProcessorResult<SaturatingCounterBranchOutcomeBuffer> =
+            when {
+                size.value <= 0 -> BranchOutcomeBufferSizeInvalid(size.value).asFailure()
+                bitWidth.value <= 0 -> BranchOutcomePredictorBitWidthInvalid(bitWidth.value).asFailure()
+                else -> SaturatingCounterBranchOutcomeBuffer(List(size.value) { null }, bitWidth).asSuccess()
+            }
     }
 
     override fun predict(instructionAddress: InstructionAddress) =
@@ -53,7 +54,7 @@ data class SaturatingCounterBranchOutcomeBuffer private constructor(
     private fun List<Entry?>.withEntry(entry: Entry) =
         toMutableList().apply { this[entry.instructionAddress.index] = entry }
 
-    private val InstructionAddress.index get() = (value / 4) % entries.size
+    private val InstructionAddress.index get() = ((value / 4) % entries.size + entries.size) % entries.size
 
     private data class Entry(
         val instructionAddress: InstructionAddress,
