@@ -29,14 +29,12 @@ data class ProcessorProgramRunResult(
 
 data class RealProcessorProgramRunner(
     private val mainMemoryProgramLoader: MainMemoryProgramLoader,
-    private val processorFactory: ProcessorFactory,
-    private val processorCreator: ProcessorCreator
+    private val processorFactory: ProcessorFactory
 ) : ProcessorProgramRunner {
 
     constructor() : this(
         RealMainMemoryProgramLoader,
-        RealProcessorFactory,
-        RealProcessorCreator
+        RealProcessorFactory
     )
 
     override fun run(
@@ -58,7 +56,7 @@ data class RealProcessorProgramRunner(
             }
             .flatMap { initialState ->
                 runUntilCompletion(
-                    processorCreator.create(configuration),
+                    RealProcessor(configuration),
                     initialState,
                     maxCycleCount,
                     maxCycleCount

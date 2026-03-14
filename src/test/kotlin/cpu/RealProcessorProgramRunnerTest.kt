@@ -1,11 +1,11 @@
 package cpu
 
-import fetch.FetchWidth
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
 import strikt.assertions.isGreaterThan
+import strikt.assertions.isLessThan
 import strikt.assertions.isTrue
 import testfixtures.isFailure
 import testfixtures.isSuccess
@@ -65,7 +65,7 @@ class RealProcessorProgramRunnerTest {
                 mainMemorySize,
                 InstructionAddress(0),
                 32,
-                benchmarkProcessorConfiguration()
+                benchmarkConfiguration()
             )
         )
             .isFailure()
@@ -96,11 +96,84 @@ class RealProcessorProgramRunnerTest {
                 mainMemorySize,
                 InstructionAddress(0),
                 4,
-                benchmarkProcessorConfiguration()
+                benchmarkConfiguration()
             )
         )
             .isFailure()
             .isEqualTo(ProcessorCycleLimitExceeded(4))
+    }
+
+    @Test
+    fun `arithmetic benchmark completes in fewer cycles with the wide processor configuration than with a scalar configuration`(
+        @TempDir temporaryDirectory: Path
+    ) {
+        val compiledProgramPath = compileBenchmarkKernel(
+            temporaryDirectory,
+            "arithmetic.c"
+        )
+        val latency = CycleCount(4)
+        val wideConfiguration = benchmarkConfiguration().copy(
+            arithmeticLogicLatencies = ArithmeticLogicLatencies(
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency,
+                latency
+            )
+        )
+        val scalarConfiguration = wideConfiguration.copy(
+            fetchWidth = fetch.FetchWidth(1),
+            issueWidth = IssueWidth(1),
+            commitWidth = CommitWidth(1),
+            instructionQueueSize = Size(8),
+            reorderBufferSize = Size(16),
+            arithmeticLogicReservationStationCount = Size(8),
+            branchReservationStationCount = Size(4),
+            memoryBufferCount = Size(8),
+            arithmeticLogicUnitCount = Size(1),
+            branchUnitCount = Size(1),
+            addressUnitCount = Size(1),
+            memoryUnitCount = Size(1)
+        )
+
+        val scalarRunResult = expectThat(
+            runner.run(
+                compiledProgramPath,
+                mainMemorySize,
+                InstructionAddress(0),
+                20_000_000,
+                scalarConfiguration
+            )
+        )
+            .isSuccess()
+            .subject
+        val wideRunResult = expectThat(
+            runner.run(
+                compiledProgramPath,
+                mainMemorySize,
+                InstructionAddress(0),
+                20_000_000,
+                wideConfiguration
+            )
+        )
+            .isSuccess()
+            .subject
+
+        expectThat(scalarRunResult.finalState.registerFile.readCommitted(RegisterAddress(10)))
+            .isEqualTo(Word(18818u))
+
+        expectThat(wideRunResult.finalState.registerFile.readCommitted(RegisterAddress(10)))
+            .isEqualTo(Word(18818u))
+
+        expectThat(wideRunResult.finalState.statistics.cycleCount)
+            .isLessThan(scalarRunResult.finalState.statistics.cycleCount)
     }
 
     private fun assertBenchmarkKernel(
@@ -126,7 +199,7 @@ class RealProcessorProgramRunnerTest {
                 mainMemorySize,
                 InstructionAddress(0),
                 maxCycleCount,
-                benchmarkProcessorConfiguration()
+                benchmarkConfiguration()
             )
         )
             .isSuccess()
@@ -140,6 +213,23 @@ class RealProcessorProgramRunnerTest {
 
         expectThat(runResult.finalState.statistics.committedInstructionCount)
             .isGreaterThan(0)
+    }
+
+    private fun compileBenchmarkKernel(temporaryDirectory: Path, fileName: String): Path {
+        val binaryFilePath = expectThat(
+            compiler.compile(
+                benchmarkSourceFilePath(fileName),
+                temporaryDirectory.resolve(fileName.removeSuffix(".c"))
+            )
+        )
+            .isSuccess()
+            .subject
+
+        return paddedBinaryFilePath(
+            binaryFilePath,
+            temporaryDirectory,
+            fileName.removeSuffix(".c")
+        )
     }
 
     private fun compileInlineProgram(
@@ -163,22 +253,6 @@ class RealProcessorProgramRunnerTest {
             .toAbsolutePath()
             .resolve("src/testFixtures/resources/benchmark_kernels")
             .resolve(fileName)
-
-    private fun benchmarkProcessorConfiguration() =
-        testProcessorConfiguration().copy(
-            fetchWidth = FetchWidth(8),
-            issueWidth = IssueWidth(8),
-            commitWidth = CommitWidth(8),
-            instructionQueueSize = Size(64),
-            reorderBufferSize = Size(128),
-            arithmeticLogicReservationStationCount = Size(64),
-            branchReservationStationCount = Size(16),
-            memoryBufferCount = Size(64),
-            arithmeticLogicUnitCount = Size(4),
-            branchUnitCount = Size(2),
-            addressUnitCount = Size(2),
-            memoryUnitCount = Size(2)
-        )
 
     private fun paddedBinaryFilePath(
         binaryFilePath: Path,
