@@ -65,10 +65,14 @@ Use this file as the default operating guide for contributors and coding agents.
 
 ## Code Style (Project Standard)
 ### Macro Style (Architecture and Coupling)
-- Every concrete class must implement an interface.
+- Every behavioral concrete class must implement an interface.
+- Pure data classes and value objects do not need interfaces.
 - Design for testability by default:
   - Production code depends on interfaces, not implementations.
   - Add stubs/fakes in `src/testFixtures` only when a real test seam needs them.
+  - Shared stubs/fakes must live in `src/testFixtures` in the matching component package.
+  - Avoid catch-all test-double files.
+  - Do not define private/local stubs in `src/test` unless the seam is truly one-off and there is a clear reason not to reuse it.
 - Prefer wiring components via interfaces at boundaries. Wiring one concrete implementation directly to another creates tighter coupling.
 - Good interface design keeps components loosely coupled and easier to evolve or replace over time.
 - Concrete-to-concrete wiring can be acceptable when it is intentionally local, does not leak across boundaries, and avoids unnecessary abstraction.
@@ -88,11 +92,14 @@ Use this file as the default operating guide for contributors and coding agents.
   - `@JvmInline value class` wrappers for primitive/data-unit semantics.
   - Unsigned numeric types (`UByte`, `UShort`, `UInt`) where bit-precision matters.
   - Prefer domain value types (`Word`, `InstructionAddress`, etc.) over primitives at component boundaries.
+  - Prefer direct construction of value classes.
+  - Do not add companion/static factory validation for value classes unless the validation genuinely belongs at a system boundary.
 - Keep APIs explicit and small:
   - Clear method names (`loadByte`, `storeWord`, etc.).
   - All failure cases must be modeled with `ProcessorResult<T>`.
   - Do not use exceptions or nullable return values to represent failure.
   - Do not add explicit return types on override methods when the interface already defines the return type.
+  - Prefer `map` and `flatMap` over manual branching on `Success` / `Failure` in production code.
 - When no stronger domain name is available, use `Real` as the concrete production implementation prefix for interface implementations.
 - Keep logic readable:
   - Prefer expression-bodied functions (`fun foo() = ...`) instead of block bodies when possible.
@@ -112,6 +119,10 @@ Use this file as the default operating guide for contributors and coding agents.
 ## State Modeling Rule
 - Model cycle/tick transition semantics at processor-state orchestration level by default.
 - Avoid embedding cycle-latch (`current`/`next`) mechanics into low-level components unless there is a clear need.
+- Stages read only `currentState`.
+- Stages produce deltas or intents for `nextState`.
+- Do not feed one stage's same-cycle output directly into another stage as a current-cycle input.
+- When multiple stages affect the same subsystem, accumulate those changes and apply them once at the cycle boundary to form `nextState`.
 
 ## Testing Standard
 - Use JUnit 5 tests with descriptive backtick method names.
@@ -126,3 +137,5 @@ Use this file as the default operating guide for contributors and coding agents.
 - Tests must cover all code paths, including boundary and failure cases, for each component.
 - Boundary and failure-case testing is mandatory for all components and is not optional.
 - Use `src/testFixtures` for reusable predictor/test doubles.
+- Name reusable doubles clearly in the relevant component package, for example `StubX`, `FakeX`, or `CallbackXStub`.
+- Avoid vague names such as `...TestDoubles`.
