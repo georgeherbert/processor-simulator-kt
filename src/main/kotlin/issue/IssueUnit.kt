@@ -198,8 +198,8 @@ data class IssueCycleDelta(
                 .map { allocationResult -> allocationResult.reorderBuffer }
     }
 
-    data class ReservationStationEnqueue<Operation>(
-        val operation: Operation,
+    data class ReservationStationEnqueue<T>(
+        val operation: T,
         val leftOperand: Operand,
         val rightOperand: Operand,
         val immediate: Word,

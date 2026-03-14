@@ -5,8 +5,8 @@ import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import types.*
 
-data class ReservationStationEnqueueCall<Operation>(
-    val operation: Operation,
+data class ReservationStationEnqueueCall<T>(
+    val operation: T,
     val leftOperand: Operand,
     val rightOperand: Operand,
     val immediate: Word,
@@ -15,17 +15,17 @@ data class ReservationStationEnqueueCall<Operation>(
 )
 
 @ConsistentCopyVisibility
-data class RecordingReservationStationBank<Operation> private constructor(
+data class RecordingReservationStationBank<T> private constructor(
     private val enqueueFailure: ProcessorError?,
-    val enqueueCalls: List<ReservationStationEnqueueCall<Operation>>
-) : ReservationStationBank<Operation> {
+    val enqueueCalls: List<ReservationStationEnqueueCall<T>>
+) : ReservationStationBank<T> {
 
     constructor() : this(null, emptyList())
 
     constructor(enqueueFailure: ProcessorError) : this(enqueueFailure, emptyList())
 
     override fun enqueue(
-        operation: Operation,
+        operation: T,
         leftOperand: Operand,
         rightOperand: Operand,
         immediate: Word,
@@ -65,7 +65,7 @@ data class RecordingReservationStationBank<Operation> private constructor(
 
     override fun clear() = copy(enqueueCalls = emptyList())
 
-    private fun ReservationStationEnqueueCall<Operation>.toReadyEntryOrNull(reservationStationIdValue: Int) =
+    private fun ReservationStationEnqueueCall<T>.toReadyEntryOrNull(reservationStationIdValue: Int) =
         when {
             leftOperand is ReadyOperand && rightOperand is ReadyOperand ->
                 ReadyReservationStationEntry(

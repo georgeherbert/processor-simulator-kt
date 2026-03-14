@@ -5,65 +5,62 @@ import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import types.*
 
-interface ReservationStationBank<Operation> {
+interface ReservationStationBank<T> {
     fun enqueue(
-        operation: Operation,
+        operation: T,
         leftOperand: Operand,
         rightOperand: Operand,
         immediate: Word,
         robId: RobId,
-        instructionAddress: InstructionAddress
-    ): ProcessorResult<ReservationStationBank<Operation>>
+        instructionAddress: InstructionAddress,
+    ): ProcessorResult<ReservationStationBank<T>>
 
-    fun dispatchReady(maxCount: Int): ReservationStationDispatchResult<Operation>
-    fun acceptCommonDataBus(commonDataBus: CommonDataBus): ReservationStationBank<Operation>
-    fun clear(): ReservationStationBank<Operation>
+    fun dispatchReady(maxCount: Int): ReservationStationDispatchResult<T>
+    fun acceptCommonDataBus(commonDataBus: CommonDataBus): ReservationStationBank<T>
+    fun clear(): ReservationStationBank<T>
 }
 
-data class ReservationStationEntry<Operation>(
+data class ReservationStationEntry<T>(
     val reservationStationId: ReservationStationId,
-    val operation: Operation,
+    val operation: T,
     val leftOperand: Operand,
     val rightOperand: Operand,
     val immediate: Word,
     val robId: RobId,
-    val instructionAddress: InstructionAddress
-) {
-    fun isReady() =
-        leftOperand is ReadyOperand && rightOperand is ReadyOperand
-}
-
-data class ReservationStationDispatchResult<Operation>(
-    val reservationStationBank: ReservationStationBank<Operation>,
-    val entries: List<ReadyReservationStationEntry<Operation>>
+    val instructionAddress: InstructionAddress,
 )
 
-data class ReadyReservationStationEntry<Operation>(
+data class ReservationStationDispatchResult<T>(
+    val reservationStationBank: ReservationStationBank<T>,
+    val entries: List<ReadyReservationStationEntry<T>>,
+)
+
+data class ReadyReservationStationEntry<T>(
     val reservationStationId: ReservationStationId,
-    val operation: Operation,
+    val operation: T,
     val leftValue: Word,
     val rightValue: Word,
     val immediate: Word,
     val robId: RobId,
-    val instructionAddress: InstructionAddress
+    val instructionAddress: InstructionAddress,
 )
 
 @ConsistentCopyVisibility
-data class RealReservationStationBank<Operation> private constructor(
+data class RealReservationStationBank<T> private constructor(
     private val capacity: Int,
     private val nextReservationStationIdValue: Int,
-    private val entries: List<ReservationStationEntry<Operation>>
-) : ReservationStationBank<Operation> {
+    private val entries: List<ReservationStationEntry<T>>,
+) : ReservationStationBank<T> {
 
     constructor(size: Size) : this(size.value, 1, emptyList())
 
     override fun enqueue(
-        operation: Operation,
+        operation: T,
         leftOperand: Operand,
         rightOperand: Operand,
         immediate: Word,
         robId: RobId,
-        instructionAddress: InstructionAddress
+        instructionAddress: InstructionAddress,
     ) =
         when (entries.size >= capacity) {
             true -> ReservationStationFull.asFailure()
@@ -82,7 +79,7 @@ data class RealReservationStationBank<Operation> private constructor(
                 ).asSuccess()
         }
 
-    override fun dispatchReady(maxCount: Int): ReservationStationDispatchResult<Operation> {
+    override fun dispatchReady(maxCount: Int): ReservationStationDispatchResult<T> {
         val readyEntries = entries
             .mapNotNull { entry -> entry.toReadyEntryOrNull() }
             .take(maxCount)
@@ -113,7 +110,7 @@ data class RealReservationStationBank<Operation> private constructor(
             is PendingOperand -> commonDataBus.resolveOperand(this)
         }
 
-    private fun ReservationStationEntry<Operation>.toReadyEntryOrNull() =
+    private fun ReservationStationEntry<T>.toReadyEntryOrNull() =
         when {
             leftOperand is ReadyOperand && rightOperand is ReadyOperand ->
                 ReadyReservationStationEntry(

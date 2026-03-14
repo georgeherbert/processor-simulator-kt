@@ -1,5 +1,11 @@
 package reservationstation
 
+import arithmeticlogic.Add
+import arithmeticlogic.ArithmeticLogicOperation
+import arithmeticlogic.And
+import arithmeticlogic.ExclusiveOr
+import arithmeticlogic.Or
+import arithmeticlogic.Subtract
 import commondatabus.StubCommonDataBus
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
@@ -13,8 +19,8 @@ class ReservationStationBankTest {
     @Test
     fun `enqueues entries until the reservation station bank is full`() {
         val reservationStationBank = expectThat(
-            RealReservationStationBank<String>(Size(1)).enqueue(
-                "add",
+            RealReservationStationBank<ArithmeticLogicOperation>(Size(1)).enqueue(
+                Add,
                 ReadyOperand(Word(1u)),
                 ReadyOperand(Word(2u)),
                 Word(0u),
@@ -27,7 +33,7 @@ class ReservationStationBankTest {
 
         expectThat(
             reservationStationBank.enqueue(
-                "sub",
+                Subtract,
                 ReadyOperand(Word(3u)),
                 ReadyOperand(Word(4u)),
                 Word(0u),
@@ -42,8 +48,8 @@ class ReservationStationBankTest {
     @Test
     fun `dispatches only ready entries up to the requested maximum`() {
         val firstBank = expectThat(
-            RealReservationStationBank<String>(Size(3)).enqueue(
-                "add",
+            RealReservationStationBank<ArithmeticLogicOperation>(Size(3)).enqueue(
+                Add,
                 ReadyOperand(Word(1u)),
                 ReadyOperand(Word(2u)),
                 Word(3u),
@@ -55,7 +61,7 @@ class ReservationStationBankTest {
             .subject
         val secondBank = expectThat(
             firstBank.enqueue(
-                "sub",
+                Subtract,
                 PendingOperand(RobId(9)),
                 ReadyOperand(Word(4u)),
                 Word(5u),
@@ -67,7 +73,7 @@ class ReservationStationBankTest {
             .subject
         val thirdBank = expectThat(
             secondBank.enqueue(
-                "xor",
+                ExclusiveOr,
                 ReadyOperand(Word(6u)),
                 ReadyOperand(Word(7u)),
                 Word(8u),
@@ -85,7 +91,7 @@ class ReservationStationBankTest {
                 listOf(
                     ReadyReservationStationEntry(
                         types.ReservationStationId(1),
-                        "add",
+                        Add,
                         Word(1u),
                         Word(2u),
                         Word(3u),
@@ -105,7 +111,7 @@ class ReservationStationBankTest {
                 listOf(
                     ReadyReservationStationEntry(
                         types.ReservationStationId(2),
-                        "sub",
+                        Subtract,
                         Word(11u),
                         Word(4u),
                         Word(5u),
@@ -114,7 +120,7 @@ class ReservationStationBankTest {
                     ),
                     ReadyReservationStationEntry(
                         types.ReservationStationId(3),
-                        "xor",
+                        ExclusiveOr,
                         Word(6u),
                         Word(7u),
                         Word(8u),
@@ -128,8 +134,8 @@ class ReservationStationBankTest {
     @Test
     fun `accept common data bus resolves pending operands and makes entries dispatchable`() {
         val reservationStationBank = expectThat(
-            RealReservationStationBank<String>(Size(1)).enqueue(
-                "and",
+            RealReservationStationBank<ArithmeticLogicOperation>(Size(1)).enqueue(
+                And,
                 PendingOperand(RobId(7)),
                 ReadyOperand(Word(9u)),
                 Word(10u),
@@ -150,7 +156,7 @@ class ReservationStationBankTest {
                 listOf(
                     ReadyReservationStationEntry(
                         types.ReservationStationId(1),
-                        "and",
+                        And,
                         Word(11u),
                         Word(9u),
                         Word(10u),
@@ -164,8 +170,8 @@ class ReservationStationBankTest {
     @Test
     fun `accept common data bus leaves pending operands unresolved when the value is unavailable`() {
         val reservationStationBank = expectThat(
-            RealReservationStationBank<String>(Size(1)).enqueue(
-                "or",
+            RealReservationStationBank<ArithmeticLogicOperation>(Size(1)).enqueue(
+                Or,
                 PendingOperand(RobId(7)),
                 ReadyOperand(Word(9u)),
                 Word(10u),
@@ -189,8 +195,8 @@ class ReservationStationBankTest {
     @Test
     fun `clear removes all entries`() {
         val reservationStationBank = expectThat(
-            RealReservationStationBank<String>(Size(1)).enqueue(
-                "add",
+            RealReservationStationBank<ArithmeticLogicOperation>(Size(1)).enqueue(
+                Add,
                 ReadyOperand(Word(1u)),
                 ReadyOperand(Word(2u)),
                 Word(0u),
@@ -207,7 +213,7 @@ class ReservationStationBankTest {
 
         expectThat(
             clearedReservationStationBank.enqueue(
-                "sub",
+                Subtract,
                 ReadyOperand(Word(3u)),
                 ReadyOperand(Word(4u)),
                 Word(0u),
