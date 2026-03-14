@@ -30,7 +30,6 @@ data class StoreAllocationCall(
 @ConsistentCopyVisibility
 data class StubReorderBuffer private constructor(
     private val nextRobIdValue: Int,
-    private val entryCountValue: Int,
     private val resolvedValuesByRobId: Map<RobId, Word>,
     private val registerWriteFailure: ProcessorError?,
     private val jumpFailure: ProcessorError?,
@@ -44,7 +43,6 @@ data class StubReorderBuffer private constructor(
 
     constructor() : this(
         1,
-        0,
         emptyMap(),
         null,
         null,
@@ -71,10 +69,6 @@ data class StubReorderBuffer private constructor(
     fun withStoreFailure(error: ProcessorError) =
         copy(storeFailure = error)
 
-    override fun freeSlotCount() = Int.MAX_VALUE
-
-    override fun entryCount() = entryCountValue
-
     override fun enqueueRegisterWrite(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
@@ -84,7 +78,6 @@ data class StubReorderBuffer private constructor(
             ?: allocationResult(
                 copy(
                     nextRobIdValue = nextRobIdValue + 1,
-                    entryCountValue = entryCountValue + 1,
                     registerWriteAllocations = registerWriteAllocations + RegisterWriteAllocationCall(
                         destinationRegisterAddress,
                         category
@@ -102,7 +95,6 @@ data class StubReorderBuffer private constructor(
             ?: allocationResult(
                 copy(
                     nextRobIdValue = nextRobIdValue + 1,
-                    entryCountValue = entryCountValue + 1,
                     jumpAllocations = jumpAllocations + JumpAllocationCall(
                         destinationRegisterAddress,
                         instructionAddress,
@@ -120,7 +112,6 @@ data class StubReorderBuffer private constructor(
             ?: allocationResult(
                 copy(
                     nextRobIdValue = nextRobIdValue + 1,
-                    entryCountValue = entryCountValue + 1,
                     branchAllocations = branchAllocations + BranchAllocationCall(
                         instructionAddress,
                         predictedNextInstructionAddress
@@ -137,7 +128,6 @@ data class StubReorderBuffer private constructor(
             ?: allocationResult(
                 copy(
                     nextRobIdValue = nextRobIdValue + 1,
-                    entryCountValue = entryCountValue + 1,
                     storeAllocations = storeAllocations + StoreAllocationCall(operation, valueOperand)
                 )
             )
@@ -155,14 +145,6 @@ data class StubReorderBuffer private constructor(
         resolvedValuesByRobId[operand.robId]
             ?.let { value -> ReadyOperand(value) }
             ?: operand
-
-    override fun hasResolvedValue(robId: RobId) =
-        resolvedValuesByRobId.containsKey(robId)
-
-    override fun valueFor(robId: RobId) =
-        resolvedValuesByRobId[robId]
-            ?.asSuccess()
-            ?: ReorderBufferValueNotReady(robId).asFailure()
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) = false
 

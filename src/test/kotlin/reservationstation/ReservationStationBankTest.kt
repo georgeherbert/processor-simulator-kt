@@ -25,12 +25,6 @@ class ReservationStationBankTest {
             .isSuccess()
             .subject
 
-        expectThat(reservationStationBank.freeSlotCount())
-            .isEqualTo(0)
-
-        expectThat(reservationStationBank.entryCount())
-            .isEqualTo(1)
-
         expectThat(
             reservationStationBank.enqueue(
                 "sub",
@@ -101,8 +95,34 @@ class ReservationStationBankTest {
                 )
             )
 
-        expectThat(dispatchResult.reservationStationBank.entryCount())
-            .isEqualTo(2)
+        expectThat(
+            dispatchResult.reservationStationBank
+                .acceptCommonDataBus(StubCommonDataBus(RobId(9), Word(11u)))
+                .dispatchReady(2)
+                .entries
+        )
+            .isEqualTo(
+                listOf(
+                    ReadyReservationStationEntry(
+                        types.ReservationStationId(2),
+                        "sub",
+                        Word(11u),
+                        Word(4u),
+                        Word(5u),
+                        RobId(2),
+                        InstructionAddress(8)
+                    ),
+                    ReadyReservationStationEntry(
+                        types.ReservationStationId(3),
+                        "xor",
+                        Word(6u),
+                        Word(7u),
+                        Word(8u),
+                        RobId(3),
+                        InstructionAddress(12)
+                    )
+                )
+            )
     }
 
     @Test
@@ -180,12 +200,22 @@ class ReservationStationBankTest {
         )
             .isSuccess()
             .subject
+        val clearedReservationStationBank = reservationStationBank.clear()
 
-        expectThat(reservationStationBank.clear().entryCount())
-            .isEqualTo(0)
+        expectThat(clearedReservationStationBank.dispatchReady(1).entries)
+            .isEqualTo(emptyList())
 
-        expectThat(reservationStationBank.clear().freeSlotCount())
-            .isEqualTo(1)
+        expectThat(
+            clearedReservationStationBank.enqueue(
+                "sub",
+                ReadyOperand(Word(3u)),
+                ReadyOperand(Word(4u)),
+                Word(0u),
+                RobId(2),
+                InstructionAddress(8)
+            )
+        )
+            .isSuccess()
     }
 
 }

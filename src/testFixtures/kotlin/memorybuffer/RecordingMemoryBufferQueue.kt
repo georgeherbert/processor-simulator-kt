@@ -24,10 +24,6 @@ data class RecordingMemoryBufferQueue private constructor(
 
     constructor(enqueueFailure: ProcessorError) : this(enqueueFailure, emptyList())
 
-    override fun freeSlotCount() = Int.MAX_VALUE
-
-    override fun entryCount() = enqueueCalls.size
-
     override fun enqueue(
         operation: MemoryBufferOperation,
         baseOperand: Operand,

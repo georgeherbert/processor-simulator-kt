@@ -12,10 +12,6 @@ data class StubCommitHeadReorderBuffer(
 
     constructor(entry: ReorderBufferEntry) : this(listOf(entry))
 
-    override fun freeSlotCount() = 0
-
-    override fun entryCount() = entries.size
-
     override fun enqueueRegisterWrite(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
@@ -51,11 +47,6 @@ data class StubCommitHeadReorderBuffer(
     ) = this
 
     override fun resolveOperand(operand: PendingOperand) = operand
-
-    override fun hasResolvedValue(robId: RobId) = false
-
-    override fun valueFor(robId: RobId) =
-        ReorderBufferValueNotReady(robId).asFailure()
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) = false
 

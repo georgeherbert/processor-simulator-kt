@@ -24,12 +24,5 @@ data class StubCommonDataBus(
             is Success -> ReadyOperand(valueResult.value)
         }
 
-    override fun isValueReady(robId: RobId) =
-        valuesByRobId.containsKey(robId)
-
-    override fun valueFor(robId: RobId) =
-        valuesByRobId[robId]
-            ?: CommonDataBusValueNotPresent.asFailure()
-
     override fun clear() = StubCommonDataBus()
 }

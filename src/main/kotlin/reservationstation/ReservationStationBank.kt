@@ -6,8 +6,6 @@ import dev.forkhandles.result4k.asSuccess
 import types.*
 
 interface ReservationStationBank<Operation> {
-    fun freeSlotCount(): Int
-    fun entryCount(): Int
     fun enqueue(
         operation: Operation,
         leftOperand: Operand,
@@ -58,10 +56,6 @@ data class RealReservationStationBank<Operation> private constructor(
 ) : ReservationStationBank<Operation> {
 
     constructor(size: Size) : this(size.value, 1, emptyList())
-
-    override fun freeSlotCount() = capacity - entries.size
-
-    override fun entryCount() = entries.size
 
     override fun enqueue(
         operation: Operation,

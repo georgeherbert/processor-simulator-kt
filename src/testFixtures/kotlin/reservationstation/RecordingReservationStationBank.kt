@@ -24,10 +24,6 @@ data class RecordingReservationStationBank<Operation> private constructor(
 
     constructor(enqueueFailure: ProcessorError) : this(enqueueFailure, emptyList())
 
-    override fun freeSlotCount() = Int.MAX_VALUE
-
-    override fun entryCount() = enqueueCalls.size
-
     override fun enqueue(
         operation: Operation,
         leftOperand: Operand,

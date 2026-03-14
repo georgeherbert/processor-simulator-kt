@@ -9,8 +9,6 @@ import reorderbuffer.ReorderBuffer
 import types.*
 
 interface MemoryBufferQueue {
-    fun freeSlotCount(): Int
-    fun entryCount(): Int
     fun enqueue(
         operation: MemoryBufferOperation,
         baseOperand: Operand,
@@ -91,10 +89,6 @@ data class RealMemoryBufferQueue private constructor(
 ) : MemoryBufferQueue {
 
     constructor(size: Size) : this(size.value, 1, emptyList())
-
-    override fun freeSlotCount() = capacity - entries.size
-
-    override fun entryCount() = entries.size
 
     override fun enqueue(
         operation: MemoryBufferOperation,

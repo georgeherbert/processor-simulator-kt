@@ -72,8 +72,10 @@ class IssueUnitTest {
             .isSuccess()
             .subject
 
-        expectThat(stepResult.reorderBuffer.entryCount())
-            .isEqualTo(0)
+        expectThat(stepResult.reorderBuffer)
+            .isA<StubReorderBuffer>()
+            .get { registerWriteAllocations }
+            .isEqualTo(emptyList())
     }
 
     @Test
@@ -99,7 +101,9 @@ class IssueUnitTest {
         expectThat(stepResult.instructionQueue.entryCount())
             .isEqualTo(0)
 
-        expectThat(stepResult.reorderBuffer.entryCount())
+        expectThat(stepResult.reorderBuffer)
+            .isA<StubReorderBuffer>()
+            .get { registerWriteAllocations.size }
             .isEqualTo(2)
 
         expectThat(stepResult.arithmeticLogicReservationStations.dispatchReady(2).entries)

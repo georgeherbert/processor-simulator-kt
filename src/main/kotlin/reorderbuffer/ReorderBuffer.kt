@@ -7,8 +7,6 @@ import dev.forkhandles.result4k.asSuccess
 import types.*
 
 interface ReorderBuffer {
-    fun freeSlotCount(): Int
-    fun entryCount(): Int
     fun enqueueRegisterWrite(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
@@ -38,8 +36,6 @@ interface ReorderBuffer {
     ): ReorderBuffer
 
     fun resolveOperand(operand: PendingOperand): Operand
-    fun hasResolvedValue(robId: RobId): Boolean
-    fun valueFor(robId: RobId): ProcessorResult<Word>
     fun hasEarlierStore(robId: RobId, address: DataAddress): Boolean
     fun commitReadyHeadIfPossible(): ReorderBufferCommitReadyHeadOutcome
     fun commitReadyHead(): ProcessorResult<ReorderBufferCommitHeadResult>
@@ -117,10 +113,6 @@ data class RealReorderBuffer private constructor(
 ) : ReorderBuffer {
 
     constructor(size: Size) : this(size.value, 1, emptyList())
-
-    override fun freeSlotCount() = capacity - entries.size
-
-    override fun entryCount() = entries.size
 
     override fun enqueueRegisterWrite(
         destinationRegisterAddress: RegisterAddress,
@@ -202,15 +194,6 @@ data class RealReorderBuffer private constructor(
         when (val resolvedValue = entryFor(operand.robId)?.resolvedValue()) {
             null -> operand
             else -> ReadyOperand(resolvedValue)
-        }
-
-    override fun hasResolvedValue(robId: RobId) =
-        entryFor(robId)?.resolvedValue() != null
-
-    override fun valueFor(robId: RobId) =
-        when (val resolvedValue = entryFor(robId)?.resolvedValue()) {
-            null -> ReorderBufferValueNotReady(robId).asFailure()
-            else -> resolvedValue.asSuccess()
         }
 
     override fun hasEarlierStore(robId: RobId, address: DataAddress) =

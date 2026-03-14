@@ -3,12 +3,9 @@ package commondatabus
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
-import strikt.assertions.isFalse
-import strikt.assertions.isTrue
 import testfixtures.isFailure
 import testfixtures.isSuccess
 import types.CommonDataBusFull
-import types.CommonDataBusValueNotPresent
 import types.PendingOperand
 import types.ReadyOperand
 import types.RobId
@@ -16,18 +13,6 @@ import types.Size
 import types.Word
 
 class CommonDataBusTest {
-
-    @Test
-    fun `value is not ready when bus is empty`() {
-        val commonDataBus = RealCommonDataBus(Size(2))
-
-        expectThat(commonDataBus.isValueReady(RobId(1)))
-            .isFalse()
-
-        expectThat(commonDataBus.valueFor(RobId(1)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
-    }
 
     @Test
     fun `resolveOperand leaves pending operand unchanged when bus has no value`() {
@@ -44,14 +29,8 @@ class CommonDataBusTest {
 
         expectThat(writeResult)
             .isSuccess()
-            .get { isValueReady(RobId(1)) }
-            .isTrue()
-
-        expectThat(writeResult)
-            .isSuccess()
-            .get { valueFor(RobId(1)) }
-            .isSuccess()
-            .isEqualTo(Word(42u))
+            .get { resolveOperand(PendingOperand(RobId(1))) }
+            .isEqualTo(ReadyOperand(Word(42u)))
     }
 
     @Test
@@ -84,25 +63,13 @@ class CommonDataBusTest {
 
         expectThat(firstWriteResult)
             .isSuccess()
-            .get { isValueReady(RobId(1)) }
-            .isTrue()
+            .get { resolveOperand(PendingOperand(RobId(1))) }
+            .isEqualTo(ReadyOperand(Word(10u)))
 
         expectThat(firstWriteResult)
             .isSuccess()
-            .get { isValueReady(RobId(2)) }
-            .isFalse()
-
-        expectThat(firstWriteResult)
-            .isSuccess()
-            .get { valueFor(RobId(1)) }
-            .isSuccess()
-            .isEqualTo(Word(10u))
-
-        expectThat(firstWriteResult)
-            .isSuccess()
-            .get { valueFor(RobId(2)) }
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
+            .get { resolveOperand(PendingOperand(RobId(2))) }
+            .isEqualTo(PendingOperand(RobId(2)))
     }
 
     @Test
@@ -123,19 +90,11 @@ class CommonDataBusTest {
 
         val commonDataBus = secondWrittenBus.clear()
 
-        expectThat(commonDataBus.isValueReady(RobId(1)))
-            .isFalse()
+        expectThat(commonDataBus.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(PendingOperand(RobId(1)))
 
-        expectThat(commonDataBus.isValueReady(RobId(2)))
-            .isFalse()
-
-        expectThat(commonDataBus.valueFor(RobId(1)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
-
-        expectThat(commonDataBus.valueFor(RobId(2)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
+        expectThat(commonDataBus.resolveOperand(PendingOperand(RobId(2))))
+            .isEqualTo(PendingOperand(RobId(2)))
     }
 
     @Test
@@ -147,12 +106,8 @@ class CommonDataBusTest {
             .isFailure()
             .isEqualTo(CommonDataBusFull)
 
-        expectThat(commonDataBus.isValueReady(RobId(1)))
-            .isFalse()
-
-        expectThat(commonDataBus.valueFor(RobId(1)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
+        expectThat(commonDataBus.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(PendingOperand(RobId(1)))
     }
 
     @Test
@@ -170,19 +125,13 @@ class CommonDataBusTest {
 
         expectThat(secondWriteResult)
             .isSuccess()
-            .get { isValueReady(RobId(1)) }
-            .isFalse()
+            .get { resolveOperand(PendingOperand(RobId(1))) }
+            .isEqualTo(PendingOperand(RobId(1)))
 
         expectThat(secondWriteResult)
             .isSuccess()
-            .get { isValueReady(RobId(2)) }
-            .isTrue()
-
-        expectThat(secondWriteResult)
-            .isSuccess()
-            .get { valueFor(RobId(2)) }
-            .isSuccess()
-            .isEqualTo(Word(20u))
+            .get { resolveOperand(PendingOperand(RobId(2))) }
+            .isEqualTo(ReadyOperand(Word(20u)))
     }
 
     @Test
@@ -191,23 +140,13 @@ class CommonDataBusTest {
         val writeResult = original
             .write(RobId(1), Word(10u))
 
-        expectThat(original.isValueReady(RobId(1)))
-            .isFalse()
-
-        expectThat(original.valueFor(RobId(1)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
+        expectThat(original.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(PendingOperand(RobId(1)))
 
         expectThat(writeResult)
             .isSuccess()
-            .get { isValueReady(RobId(1)) }
-            .isTrue()
-
-        expectThat(writeResult)
-            .isSuccess()
-            .get { valueFor(RobId(1)) }
-            .isSuccess()
-            .isEqualTo(Word(10u))
+            .get { resolveOperand(PendingOperand(RobId(1))) }
+            .isEqualTo(ReadyOperand(Word(10u)))
     }
 
     @Test
@@ -221,19 +160,11 @@ class CommonDataBusTest {
 
         val cleared = original.clear()
 
-        expectThat(original.isValueReady(RobId(1)))
-            .isTrue()
+        expectThat(original.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(ReadyOperand(Word(10u)))
 
-        expectThat(original.valueFor(RobId(1)))
-            .isSuccess()
-            .isEqualTo(Word(10u))
-
-        expectThat(cleared.isValueReady(RobId(1)))
-            .isFalse()
-
-        expectThat(cleared.valueFor(RobId(1)))
-            .isFailure()
-            .isEqualTo(CommonDataBusValueNotPresent)
+        expectThat(cleared.resolveOperand(PendingOperand(RobId(1))))
+            .isEqualTo(PendingOperand(RobId(1)))
     }
 
     @Test
@@ -250,8 +181,7 @@ class CommonDataBusTest {
 
         expectThat(secondWriteResult)
             .isSuccess()
-            .get { valueFor(RobId(1)) }
-            .isSuccess()
-            .isEqualTo(Word(10u))
+            .get { resolveOperand(PendingOperand(RobId(1))) }
+            .isEqualTo(ReadyOperand(Word(10u)))
     }
 }

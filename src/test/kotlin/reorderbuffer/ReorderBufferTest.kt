@@ -33,12 +33,8 @@ class ReorderBufferTest {
 
         val readyReorderBuffer = allocationResult.reorderBuffer.acceptCommonDataBus(commonDataBus)
 
-        expectThat(readyReorderBuffer.hasResolvedValue(allocationResult.robId))
-            .isTrue()
-
-        expectThat(readyReorderBuffer.valueFor(allocationResult.robId))
-            .isSuccess()
-            .isEqualTo(Word(42u))
+        expectThat(readyReorderBuffer.resolveOperand(PendingOperand(allocationResult.robId)))
+            .isEqualTo(ReadyOperand(Word(42u)))
 
         expectThat(readyReorderBuffer.commitReadyHead())
             .isSuccess()
@@ -131,8 +127,9 @@ class ReorderBufferTest {
 
         expectThat(commitReadyHeadOutcome)
             .isA<ReorderBufferCommitHeadResult>()
-            .get { reorderBuffer.entryCount() }
-            .isEqualTo(0)
+            .get { reorderBuffer.commitReadyHead() }
+            .isFailure()
+            .isEqualTo(ReorderBufferEmpty)
     }
 
     @Test

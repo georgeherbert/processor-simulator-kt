@@ -1,11 +1,14 @@
 package cpu
 
 import arithmeticlogic.AddImmediate
+import arithmeticlogic.ArithmeticLogicOperation
 import arithmeticlogic.RealArithmeticLogicUnit
 import arithmeticlogic.RealArithmeticLogicUnitSet
 import commit.CallbackCommitUnitStub
 import commit.CommitCycleDelta
 import commit.NoCommitControlEvent
+import dev.forkhandles.result4k.Failure
+import dev.forkhandles.result4k.Success
 import decoder.RealInstructionDecoder
 import dev.forkhandles.result4k.asSuccess
 import fetch.FetchWidth
@@ -17,9 +20,11 @@ import mainmemory.StubMainMemory
 import org.junit.jupiter.api.Test
 import reorderbuffer.ArithmeticLogicRegisterWriteReorderBufferEntryCategory
 import reorderbuffer.RealReorderBuffer
+import commondatabus.StubCommonDataBus
 import reservationstation.ReadyReservationStationEntry
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
+import testfixtures.isFailure
 import testfixtures.isSuccess
 import types.*
 
@@ -109,9 +114,9 @@ class ProcessorCycleIsolationTest {
             configuration,
             RealInstructionDecoder,
             CallbackIssueUnitStub { _, _, _, reorderBuffer, _, _, _ ->
-                when (reorderBuffer.freeSlotCount() == 0) {
-                    true -> IssueCycleDelta.none().asSuccess()
-                    false ->
+                when (reorderBuffer.enqueueRegisterWrite(RegisterAddress(5), ArithmeticLogicRegisterWriteReorderBufferEntryCategory)) {
+                    is Failure -> IssueCycleDelta.none().asSuccess()
+                    is Success ->
                         IssueCycleDelta(
                             0,
                             emptyList(),
@@ -144,8 +149,9 @@ class ProcessorCycleIsolationTest {
             .isSuccess()
             .subject
 
-        expectThat(nextState.reorderBuffer.entryCount())
-            .isEqualTo(0)
+        expectThat(nextState.reorderBuffer.commitReadyHead())
+            .isFailure()
+            .isEqualTo(ReorderBufferEmpty)
     }
 
     @Test
@@ -238,11 +244,22 @@ class ProcessorCycleIsolationTest {
             .isSuccess()
             .subject
 
-        expectThat(nextState.arithmeticLogicReservationStations.entryCount())
-            .isEqualTo(1)
+        expectThat(
+            nextState.arithmeticLogicReservationStations
+                .acceptCommonDataBus(StubCommonDataBus(producerAllocation.robId, Word(1u)))
+                .dispatchReady(1)
+                .entries
+        )
+            .isEqualTo(
+                listOf(
+                    arithmeticReadyEntry(
+                        RobId(2)
+                    )
+                )
+            )
 
-        expectThat(stateAfterDispatchOpportunity.arithmeticLogicReservationStations.entryCount())
-            .isEqualTo(0)
+        expectThat(stateAfterDispatchOpportunity.arithmeticLogicReservationStations.dispatchReady(1).entries)
+            .isEqualTo(emptyList())
     }
 
     private fun readySingleEntryReorderBuffer() =
@@ -260,4 +277,15 @@ class ProcessorCycleIsolationTest {
                     InstructionAddress(4)
                 )
             }
+
+    private fun arithmeticReadyEntry(robId: RobId): ReadyReservationStationEntry<ArithmeticLogicOperation> =
+        ReadyReservationStationEntry(
+            ReservationStationId(1),
+            AddImmediate,
+            Word(1u),
+            Word(1u),
+            Word(0u),
+            robId,
+            InstructionAddress(0)
+        )
 }

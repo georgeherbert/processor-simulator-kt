@@ -13,7 +13,6 @@ data class BranchOutcomePredictorBitWidthInvalid(val bitWidth: Int) : Validation
 
 sealed interface CommonDataBusError : ProcessorError
 data object CommonDataBusFull : CommonDataBusError
-data object CommonDataBusValueNotPresent : CommonDataBusError
 
 sealed interface MainMemoryError : ProcessorError
 data class MainMemoryAddressOutOfBounds(val address: Int) : MainMemoryError
@@ -35,7 +34,6 @@ sealed interface ReorderBufferError : ProcessorError
 data object ReorderBufferFull : ReorderBufferError
 data object ReorderBufferEmpty : ReorderBufferError
 data object ReorderBufferHeadNotReady : ReorderBufferError
-data class ReorderBufferValueNotReady(val robId: RobId) : ReorderBufferError
 
 sealed interface ReservationStationError : ProcessorError
 data object ReservationStationFull : ReservationStationError

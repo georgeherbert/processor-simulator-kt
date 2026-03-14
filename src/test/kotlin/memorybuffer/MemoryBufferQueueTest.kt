@@ -144,7 +144,7 @@ class MemoryBufferQueueTest {
             .isSuccess()
             .subject
 
-        expectThat(queue.removeEntry(MemoryBufferId(1)).entryCount())
-            .isEqualTo(0)
+        expectThat(queue.removeEntry(MemoryBufferId(1)).dispatchAddressComputations(1).workItems)
+            .isEqualTo(emptyList())
     }
 }
