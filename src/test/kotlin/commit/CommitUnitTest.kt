@@ -42,7 +42,7 @@ class CommitUnitTest {
             .subject
 
         expectThat(stepResult.statisticsDelta)
-            .isEqualTo(CommitStatisticsDelta(0, 0, 0))
+            .isEqualTo(CommitStatisticsDelta(0))
 
         expectThat(stepResult.controlEvent)
             .isEqualTo(NoCommitControlEvent)
@@ -79,7 +79,7 @@ class CommitUnitTest {
             .isEqualTo(Word(33u))
 
         expectThat(stepResult.statisticsDelta)
-            .isEqualTo(CommitStatisticsDelta(1, 0, 0))
+            .isEqualTo(CommitStatisticsDelta(1))
     }
 
     @Test
@@ -115,7 +115,7 @@ class CommitUnitTest {
             .isEqualTo(RedirectCommitControlEvent(InstructionAddress(0)))
 
         expectThat(stepResult.statisticsDelta)
-            .isEqualTo(CommitStatisticsDelta(1, 1, 1))
+            .isEqualTo(CommitStatisticsDelta(1))
 
         expectThat(stepResult.branchTargetPredictor.predict(InstructionAddress(12)))
             .isEqualTo(InstructionAddress(0))
@@ -146,7 +146,7 @@ class CommitUnitTest {
             .isEqualTo(NoCommitControlEvent)
 
         expectThat(stepResult.statisticsDelta)
-            .isEqualTo(CommitStatisticsDelta(1, 1, 0))
+            .isEqualTo(CommitStatisticsDelta(1))
     }
 
     @Test

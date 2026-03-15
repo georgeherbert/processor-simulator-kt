@@ -4,12 +4,16 @@ import commit.CommitCycleDelta
 import commit.CommitUnit
 import commit.RealCommitUnit
 import commit.RedirectCommitControlEvent
+import control.ControlState
+import control.PredictedProgramCounterSelection
+import control.RedirectedProgramCounterSelection
 import decoder.InstructionDecoder
 import decoder.RealInstructionDecoder
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import dev.forkhandles.result4k.flatMap
 import dev.forkhandles.result4k.map
+import fetch.FetchStepResult
 import fetch.InstructionFetcher
 import fetch.RealInstructionFetcher
 import instructionqueue.InstructionQueue
@@ -58,18 +62,21 @@ data class RealProcessor(
                 val updatedStatistics = state.statistics.updatedWith(commitChanges.statisticsDelta)
                 when {
                     commitChanges.halted ->
-                        haltedState(
-                            state,
-                            commitChanges,
-                            updatedStatistics
-                        )
-
-                    commitChanges.controlEvent is RedirectCommitControlEvent ->
-                        flushedState(
+                        terminalState(
                             state,
                             commitChanges,
                             updatedStatistics,
-                            commitChanges.controlEvent
+                            haltedControlState(),
+                            true
+                        )
+
+                    commitChanges.controlEvent is RedirectCommitControlEvent ->
+                        terminalState(
+                            state,
+                            commitChanges,
+                            updatedStatistics,
+                            redirectedControlState(commitChanges.controlEvent.targetInstructionAddress),
+                            false
                         )
 
                     else ->
@@ -81,64 +88,32 @@ data class RealProcessor(
                 }
             }
 
-    private fun haltedState(
-        state: ProcessorState,
-        commitChanges: CommitCycleDelta,
-        updatedStatistics: ProcessorStatistics
-    ) =
-        commitChanges.applyToMainMemory(state.mainMemory)
-            .map { committedMainMemory ->
-                ProcessorState(
-                    control.ControlState(
-                        InstructionAddress(0),
-                        control.RedirectedProgramCounterSelection(InstructionAddress(0))
-                    ),
-                    updatedStatistics,
-                    true,
-                    commitChanges.applyToBranchTargetPredictor(state.branchTargetPredictor),
-                    state.commonDataBus.clear(),
-                    committedMainMemory,
-                    state.instructionQueue.clear(),
-                    commitChanges.applyToRegisterFile(state.registerFile).flushPendingDestinations(),
-                    state.reorderBuffer.clear(),
-                    state.arithmeticLogicReservationStations.clear(),
-                    state.branchReservationStations.clear(),
-                    state.memoryBufferQueue.clear(),
-                    state.arithmeticLogicUnitSet.clear(),
-                    state.branchUnitSet.clear(),
-                    state.addressUnitSet.clear(),
-                    state.memoryUnitSet.clear()
-                )
-            }
-
-    private fun flushedState(
+    private fun terminalState(
         state: ProcessorState,
         commitChanges: CommitCycleDelta,
         updatedStatistics: ProcessorStatistics,
-        controlEvent: RedirectCommitControlEvent
+        controlState: ControlState,
+        halted: Boolean
     ) =
         commitChanges.applyToMainMemory(state.mainMemory)
             .map { committedMainMemory ->
                 ProcessorState(
-                    control.ControlState(
-                        controlEvent.targetInstructionAddress,
-                        control.RedirectedProgramCounterSelection(controlEvent.targetInstructionAddress)
-                    ),
-                    updatedStatistics,
-                    false,
-                    commitChanges.applyToBranchTargetPredictor(state.branchTargetPredictor),
-                    state.commonDataBus.clear(),
-                    committedMainMemory,
-                    state.instructionQueue.clear(),
-                    commitChanges.applyToRegisterFile(state.registerFile).flushPendingDestinations(),
-                    state.reorderBuffer.clear(),
-                    state.arithmeticLogicReservationStations.clear(),
-                    state.branchReservationStations.clear(),
-                    state.memoryBufferQueue.clear(),
-                    state.arithmeticLogicUnitSet.clear(),
-                    state.branchUnitSet.clear(),
-                    state.addressUnitSet.clear(),
-                    state.memoryUnitSet.clear()
+                    controlState = controlState,
+                    statistics = updatedStatistics,
+                    halted = halted,
+                    branchTargetPredictor = commitChanges.applyToBranchTargetPredictor(state.branchTargetPredictor),
+                    commonDataBus = state.commonDataBus.clear(),
+                    mainMemory = committedMainMemory,
+                    instructionQueue = state.instructionQueue.clear(),
+                    registerFile = commitChanges.applyToRegisterFile(state.registerFile).flushPendingDestinations(),
+                    reorderBuffer = state.reorderBuffer.clear(),
+                    arithmeticLogicReservationStations = state.arithmeticLogicReservationStations.clear(),
+                    branchReservationStations = state.branchReservationStations.clear(),
+                    memoryBufferQueue = state.memoryBufferQueue.clear(),
+                    arithmeticLogicUnitSet = state.arithmeticLogicUnitSet.clear(),
+                    branchUnitSet = state.branchUnitSet.clear(),
+                    addressUnitSet = state.addressUnitSet.clear(),
+                    memoryUnitSet = state.memoryUnitSet.clear()
                 )
             }
 
@@ -146,7 +121,22 @@ data class RealProcessor(
         state: ProcessorState,
         commitChanges: CommitCycleDelta,
         updatedStatistics: ProcessorStatistics
-    ): ProcessorResult<ProcessorState> {
+    ) =
+        collectCurrentCycleActivity(state)
+            .flatMap { currentCycleActivity ->
+                collectNextCycleInputs(state)
+                    .flatMap { nextCycleInputs ->
+                        assembleContinuingState(
+                            state,
+                            commitChanges,
+                            updatedStatistics,
+                            currentCycleActivity,
+                            nextCycleInputs
+                        )
+                    }
+            }
+
+    private fun collectCurrentCycleActivity(state: ProcessorState): ProcessorResult<CurrentCycleActivity> {
         val arithmeticDispatchResult = state.arithmeticLogicReservationStations.dispatchReady(
             state.arithmeticLogicUnitSet.availableLaneCount()
         )
@@ -171,91 +161,113 @@ data class RealProcessor(
                     arithmeticLogicUnitStepResult.commonDataBusWrites +
                             branchUnitStepResult.commonDataBusWrites +
                             memoryUnitStepResult.commonDataBusWrites
-                )
-                    .flatMap { commonDataBus ->
-                        issueUnit.nextCycleDelta(
-                            state.instructionQueue,
-                            instructionDecoder,
-                            state.registerFile,
-                            state.reorderBuffer,
-                            state.arithmeticLogicReservationStations,
-                            state.branchReservationStations,
-                            state.memoryBufferQueue
-                        )
-                            .flatMap { issueChanges ->
-                                fetchNextInstructionBatch(
-                                    state.instructionQueue,
-                                    state.mainMemory,
-                                    state.branchTargetPredictor,
-                                    state.controlState.fetchInstructionAddress
-                                )
-                                    .flatMap { fetchStepResult ->
-                                        nextInstructionQueue(state.instructionQueue, issueChanges, fetchStepResult.fetchedInstructions)
-                                            .flatMap { instructionQueue ->
-                                                nextReorderBuffer(
-                                                    state.reorderBuffer,
-                                                    commitChanges,
-                                                    commonDataBus,
-                                                    branchUnitStepResult.branchResolutions,
-                                                    addressUnitStepResult.addressResolutions,
-                                                    issueChanges
-                                                )
-                                                    .flatMap { reorderBuffer ->
-                                                        nextArithmeticLogicReservationStations(
-                                                            arithmeticDispatchResult.reservationStationBank,
-                                                            commonDataBus,
-                                                            issueChanges
-                                                        )
-                                                            .flatMap { arithmeticLogicReservationStations ->
-                                                                nextBranchReservationStations(
-                                                                    branchDispatchResult.reservationStationBank,
-                                                                    commonDataBus,
-                                                                    issueChanges
-                                                                )
-                                                                    .flatMap { branchReservationStations ->
-                                                                        nextMemoryBufferQueue(
-                                                                            memoryDispatchResult.memoryBufferQueue,
-                                                                            addressUnitStepResult.addressResolutions,
-                                                                            commonDataBus,
-                                                                            issueChanges
-                                                                        )
-                                                                            .flatMap { memoryBufferQueue ->
-                                                                                commitChanges.applyToMainMemory(state.mainMemory)
-                                                                                    .map { mainMemory ->
-                                                                                        ProcessorState(
-                                                                                            control.ControlState(
-                                                                                                fetchStepResult.nextInstructionAddress,
-                                                                                                control.PredictedProgramCounterSelection
-                                                                                            ),
-                                                                                            updatedStatistics,
-                                                                                            false,
-                                                                                            commitChanges.applyToBranchTargetPredictor(state.branchTargetPredictor),
-                                                                                            commonDataBus,
-                                                                                            mainMemory,
-                                                                                            instructionQueue,
-                                                                                            issueChanges.applyToRegisterFile(
-                                                                                                commitChanges.applyToRegisterFile(state.registerFile)
-                                                                                            ),
-                                                                                            reorderBuffer,
-                                                                                            arithmeticLogicReservationStations,
-                                                                                            branchReservationStations,
-                                                                                            memoryBufferQueue,
-                                                                                            arithmeticLogicUnitStepResult.arithmeticLogicUnitSet,
-                                                                                            branchUnitStepResult.branchUnitSet,
-                                                                                            addressUnitStepResult.addressUnitSet,
-                                                                                            memoryUnitStepResult.memoryUnitSet
-                                                                                        )
-                                                                                    }
-                                                                            }
-                                                                    }
-                                                            }
-                                                    }
-                                            }
-                                    }
-                            }
-                    }
+                ).map { commonDataBus ->
+                    CurrentCycleActivity(
+                        arithmeticDispatchResult,
+                        branchDispatchResult,
+                        memoryDispatchResult,
+                        arithmeticLogicUnitStepResult,
+                        branchUnitStepResult,
+                        addressUnitStepResult,
+                        memoryUnitStepResult,
+                        commonDataBus
+                    )
+                }
             }
     }
+
+    private fun collectNextCycleInputs(state: ProcessorState) =
+        issueUnit.nextCycleDelta(
+            state.instructionQueue,
+            instructionDecoder,
+            state.registerFile,
+            state.reorderBuffer,
+            state.arithmeticLogicReservationStations,
+            state.branchReservationStations,
+            state.memoryBufferQueue
+        ).flatMap { issueChanges ->
+            fetchNextInstructionBatch(
+                state.instructionQueue,
+                state.mainMemory,
+                state.branchTargetPredictor,
+                state.controlState.fetchInstructionAddress
+            ).map { fetchStepResult ->
+                NextCycleInputs(
+                    issueChanges,
+                    fetchStepResult
+                )
+            }
+        }
+
+    private fun assembleContinuingState(
+        state: ProcessorState,
+        commitChanges: CommitCycleDelta,
+        updatedStatistics: ProcessorStatistics,
+        currentCycleActivity: CurrentCycleActivity,
+        nextCycleInputs: NextCycleInputs
+    ): ProcessorResult<ProcessorState> =
+        nextInstructionQueue(
+            state.instructionQueue,
+            nextCycleInputs.issueChanges,
+            nextCycleInputs.fetchStepResult.fetchedInstructions
+        ).flatMap { instructionQueue ->
+            nextReorderBuffer(
+                state.reorderBuffer,
+                commitChanges,
+                currentCycleActivity.commonDataBus,
+                currentCycleActivity.branchUnitStepResult.branchResolutions,
+                currentCycleActivity.addressUnitStepResult.addressResolutions,
+                nextCycleInputs.issueChanges
+            ).flatMap { reorderBuffer ->
+                nextArithmeticLogicReservationStations(
+                    currentCycleActivity.arithmeticDispatchResult.reservationStationBank,
+                    currentCycleActivity.commonDataBus,
+                    nextCycleInputs.issueChanges
+                ).flatMap { arithmeticLogicReservationStations ->
+                    nextBranchReservationStations(
+                        currentCycleActivity.branchDispatchResult.reservationStationBank,
+                        currentCycleActivity.commonDataBus,
+                        nextCycleInputs.issueChanges
+                    ).flatMap { branchReservationStations ->
+                        nextMemoryBufferQueue(
+                            currentCycleActivity.memoryDispatchResult.memoryBufferQueue,
+                            currentCycleActivity.addressUnitStepResult.addressResolutions,
+                            currentCycleActivity.commonDataBus,
+                            nextCycleInputs.issueChanges
+                        ).flatMap { memoryBufferQueue ->
+                            commitChanges.applyToMainMemory(state.mainMemory)
+                                .map { mainMemory ->
+                                    ProcessorState(
+                                        controlState = ControlState(
+                                            nextCycleInputs.fetchStepResult.nextInstructionAddress,
+                                            PredictedProgramCounterSelection
+                                        ),
+                                        statistics = updatedStatistics,
+                                        halted = false,
+                                        branchTargetPredictor = commitChanges.applyToBranchTargetPredictor(state.branchTargetPredictor),
+                                        commonDataBus = currentCycleActivity.commonDataBus,
+                                        mainMemory = mainMemory,
+                                        instructionQueue = instructionQueue,
+                                        registerFile = nextRegisterFile(
+                                            state.registerFile,
+                                            commitChanges,
+                                            nextCycleInputs.issueChanges
+                                        ),
+                                        reorderBuffer = reorderBuffer,
+                                        arithmeticLogicReservationStations = arithmeticLogicReservationStations,
+                                        branchReservationStations = branchReservationStations,
+                                        memoryBufferQueue = memoryBufferQueue,
+                                        arithmeticLogicUnitSet = currentCycleActivity.arithmeticLogicUnitStepResult.arithmeticLogicUnitSet,
+                                        branchUnitSet = currentCycleActivity.branchUnitStepResult.branchUnitSet,
+                                        addressUnitSet = currentCycleActivity.addressUnitStepResult.addressUnitSet,
+                                        memoryUnitSet = currentCycleActivity.memoryUnitStepResult.memoryUnitSet
+                                    )
+                                }
+                        }
+                    }
+                }
+            }
+        }
 
     private fun nextInstructionQueue(
         instructionQueue: InstructionQueue,
@@ -296,9 +308,6 @@ data class RealProcessor(
                         is LoadAddressResolution -> currentReorderBuffer
                     }
                 }
-            }
-            .map { reorderBufferAfterAddressResolutions ->
-                reorderBufferAfterAddressResolutions
             }
             .flatMap { reorderBufferAfterAddressResolutions ->
                 issueChanges.applyToReorderBuffer(reorderBufferAfterAddressResolutions)
@@ -396,4 +405,41 @@ data class RealProcessor(
             }
         }
     }
+
+    private fun nextRegisterFile(
+        registerFile: registerfile.RegisterFile,
+        commitChanges: CommitCycleDelta,
+        issueChanges: IssueCycleDelta
+    ) =
+        issueChanges.applyToRegisterFile(
+            commitChanges.applyToRegisterFile(registerFile)
+        )
+
+    private fun haltedControlState() =
+        ControlState(
+            InstructionAddress(0),
+            RedirectedProgramCounterSelection(InstructionAddress(0))
+        )
+
+    private fun redirectedControlState(targetInstructionAddress: InstructionAddress) =
+        ControlState(
+            targetInstructionAddress,
+            RedirectedProgramCounterSelection(targetInstructionAddress)
+        )
 }
+
+private data class CurrentCycleActivity(
+    val arithmeticDispatchResult: reservationstation.ReservationStationDispatchResult<arithmeticlogic.ArithmeticLogicOperation>,
+    val branchDispatchResult: reservationstation.ReservationStationDispatchResult<branchlogic.BranchOperation>,
+    val memoryDispatchResult: memorybuffer.MemoryBufferLoadDispatchResult,
+    val arithmeticLogicUnitStepResult: arithmeticlogic.ArithmeticLogicUnitSetStepResult,
+    val branchUnitStepResult: branchlogic.BranchUnitSetStepResult,
+    val addressUnitStepResult: address.AddressUnitSetStepResult,
+    val memoryUnitStepResult: memoryaccess.MemoryUnitSetStepResult,
+    val commonDataBus: commondatabus.CommonDataBus
+)
+
+private data class NextCycleInputs(
+    val issueChanges: IssueCycleDelta,
+    val fetchStepResult: FetchStepResult
+)

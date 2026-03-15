@@ -139,7 +139,7 @@ class ProcessorCycleIsolationTest {
                     emptyList(),
                     emptyList(),
                     NoCommitControlEvent,
-                    commit.CommitStatisticsDelta(1, 0, 0),
+                    commit.CommitStatisticsDelta(1),
                     false
                 ).asSuccess()
             }

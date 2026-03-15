@@ -293,7 +293,7 @@ class SimulationServiceTest {
             .let { initialState ->
                 ProcessorProgramRunResult(
                     initialState.copy(
-                        statistics = ProcessorStatistics(cycleCount, committedInstructionCount, 0, 0),
+                        statistics = ProcessorStatistics(cycleCount, committedInstructionCount),
                         halted = true
                     )
                 )

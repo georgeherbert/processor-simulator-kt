@@ -45,9 +45,6 @@ class ProcessorTest {
         expectThat(finalState.statistics.committedInstructionCount)
             .isEqualTo(4)
 
-        expectThat(finalState.statistics.mispredictionCount)
-            .isEqualTo(1)
-
         expectThat(processor.step(finalState))
             .isFailure()
             .isEqualTo(ProcessorAlreadyHalted)

@@ -10,10 +10,10 @@ class ProcessorStatisticsTest {
     @Test
     fun `updated with increments the cycle count and applies the commit deltas`() {
         expectThat(
-            ProcessorStatistics(10, 20, 30, 40).updatedWith(
-                CommitStatisticsDelta(1, 2, 3)
+            ProcessorStatistics(10, 20).updatedWith(
+                CommitStatisticsDelta(1)
             )
         )
-            .isEqualTo(ProcessorStatistics(11, 21, 32, 43))
+            .isEqualTo(ProcessorStatistics(11, 21))
     }
 }

@@ -81,9 +81,7 @@ data class CommitCycleDelta(
             branchOutcomes + other.branchOutcomes,
             other.controlEvent,
             CommitStatisticsDelta(
-                statisticsDelta.committedInstructionCount + other.statisticsDelta.committedInstructionCount,
-                statisticsDelta.branchInstructionCount + other.statisticsDelta.branchInstructionCount,
-                statisticsDelta.mispredictionCount + other.statisticsDelta.mispredictionCount
+                statisticsDelta.committedInstructionCount + other.statisticsDelta.committedInstructionCount
             ),
             halted || other.halted
         )
@@ -96,7 +94,7 @@ data class CommitCycleDelta(
                 emptyList(),
                 emptyList(),
                 NoCommitControlEvent,
-                CommitStatisticsDelta(0, 0, 0),
+                CommitStatisticsDelta(0),
                 false
             )
     }
@@ -132,9 +130,7 @@ data class CommitCycleDelta(
 }
 
 data class CommitStatisticsDelta(
-    val committedInstructionCount: Int,
-    val branchInstructionCount: Int,
-    val mispredictionCount: Int
+    val committedInstructionCount: Int
 )
 
 sealed interface CommitControlEvent
@@ -196,7 +192,7 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
                                     emptyList(),
                                     emptyList(),
                                     NoCommitControlEvent,
-                                    CommitStatisticsDelta(1, 0, 0),
+                                    CommitStatisticsDelta(1),
                                     false
                                 )
                             )
@@ -228,7 +224,7 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
                                                 )
                                             ),
                                             nextControlEvent,
-                                            CommitStatisticsDelta(1, 1, mispredictionDelta(nextControlEvent)),
+                                            CommitStatisticsDelta(1),
                                             actualNextInstructionAddress.value == 0
                                         )
                                     )
@@ -259,7 +255,7 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
                                         )
                                     ),
                                     nextControlEvent,
-                                    CommitStatisticsDelta(1, 1, mispredictionDelta(nextControlEvent)),
+                                    CommitStatisticsDelta(1),
                                     false
                                 )
                             )
@@ -279,7 +275,7 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
                                     listOf(store),
                                     emptyList(),
                                     NoCommitControlEvent,
-                                    CommitStatisticsDelta(1, 0, 0),
+                                    CommitStatisticsDelta(1),
                                     false
                                 )
                             )
@@ -295,12 +291,6 @@ data class RealCommitUnit(private val commitWidth: CommitWidth) : CommitUnit {
         when (predictedNextInstructionAddress == actualNextInstructionAddress) {
             true -> NoCommitControlEvent
             false -> RedirectCommitControlEvent(actualNextInstructionAddress)
-        }
-
-    private fun mispredictionDelta(controlEvent: CommitControlEvent) =
-        when (controlEvent) {
-            NoCommitControlEvent -> 0
-            is RedirectCommitControlEvent -> 1
         }
 
     private fun storeFor(committedEntry: StoreReorderBufferEntry) =

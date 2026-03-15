@@ -52,7 +52,7 @@ data object RealProcessorFactory : ProcessorFactory {
             .map { branchTargetBuffer ->
                 ProcessorState(
                     ControlState(initialInstructionAddress, PredictedProgramCounterSelection),
-                    ProcessorStatistics(0, 0, 0, 0),
+                    ProcessorStatistics(0, 0),
                     false,
                     branchTargetBuffer,
                     RealCommonDataBus(
