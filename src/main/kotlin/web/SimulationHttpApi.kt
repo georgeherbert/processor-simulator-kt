@@ -115,15 +115,18 @@ data class RealSimulationHttpApi(
             InstructionQueueFull -> "Instruction queue is full"
             InstructionQueueEmpty -> "Instruction queue is empty"
             is InstructionQueueSlotCountInvalid -> "Instruction queue slot count is invalid: ${error.count}"
-            ReorderBufferFull -> "Reorder buffer is full"
             ReorderBufferEmpty -> "Reorder buffer is empty"
             ReorderBufferHeadNotReady -> "Reorder buffer head is not ready"
-            ReservationStationFull -> "Reservation station is full"
-            MemoryBufferFull -> "Memory buffer is full"
             is CommitEntryValueUnavailable -> "Commit value unavailable for ROB ${error.robId.value}"
             is CommitEntryAddressUnavailable -> "Commit address unavailable for ROB ${error.robId.value}"
             is CommitEntryActualNextInstructionAddressUnavailable ->
                 "Commit next instruction address unavailable for ROB ${error.robId.value}"
+            IssueCycleDeltaReorderBufferAllocationUnavailable ->
+                "Issue delta could not be applied to the reorder buffer"
+            IssueCycleDeltaReservationStationEnqueueUnavailable ->
+                "Issue delta could not be applied to the reservation stations"
+            IssueCycleDeltaMemoryBufferEnqueueUnavailable ->
+                "Issue delta could not be applied to the memory buffer"
             is BranchTargetBufferSizeInvalid -> "Branch target buffer size is invalid: ${error.size}"
             is BranchOutcomeBufferSizeInvalid -> "Branch outcome buffer size is invalid: ${error.size}"
             is BranchOutcomePredictorBitWidthInvalid -> "Branch predictor bit width is invalid: ${error.bitWidth}"

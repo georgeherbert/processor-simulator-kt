@@ -31,6 +31,10 @@ data class StoreAllocationCall(
 data class StubReorderBuffer private constructor(
     private val nextRobIdValue: Int,
     private val resolvedValuesByRobId: Map<RobId, Word>,
+    private val registerWriteUnavailable: Boolean,
+    private val jumpUnavailable: Boolean,
+    private val branchUnavailable: Boolean,
+    private val storeUnavailable: Boolean,
     private val registerWriteFailure: ProcessorError?,
     private val jumpFailure: ProcessorError?,
     private val branchFailure: ProcessorError?,
@@ -44,6 +48,10 @@ data class StubReorderBuffer private constructor(
     constructor() : this(
         1,
         emptyMap(),
+        false,
+        false,
+        false,
+        false,
         null,
         null,
         null,
@@ -56,6 +64,18 @@ data class StubReorderBuffer private constructor(
 
     fun withResolvedValue(robId: RobId, value: Word) =
         copy(resolvedValuesByRobId = resolvedValuesByRobId + (robId to value))
+
+    fun withRegisterWriteUnavailable() =
+        copy(registerWriteUnavailable = true)
+
+    fun withJumpUnavailable() =
+        copy(jumpUnavailable = true)
+
+    fun withBranchUnavailable() =
+        copy(branchUnavailable = true)
+
+    fun withStoreUnavailable() =
+        copy(storeUnavailable = true)
 
     fun withRegisterWriteFailure(error: ProcessorError) =
         copy(registerWriteFailure = error)
@@ -73,64 +93,76 @@ data class StubReorderBuffer private constructor(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
     ) =
-        registerWriteFailure
-            ?.asFailure()
-            ?: allocationResult(
-                copy(
-                    nextRobIdValue = nextRobIdValue + 1,
-                    registerWriteAllocations = registerWriteAllocations + RegisterWriteAllocationCall(
-                        destinationRegisterAddress,
-                        category
+        when {
+            registerWriteFailure != null -> registerWriteFailure.asFailure()
+            registerWriteUnavailable -> ReorderBufferAllocationUnavailable.asSuccess()
+            else ->
+                allocationResult(
+                    copy(
+                        nextRobIdValue = nextRobIdValue + 1,
+                        registerWriteAllocations = registerWriteAllocations + RegisterWriteAllocationCall(
+                            destinationRegisterAddress,
+                            category
+                        )
                     )
                 )
-            )
+        }
 
     override fun enqueueJump(
         destinationRegisterAddress: RegisterAddress,
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
     ) =
-        jumpFailure
-            ?.asFailure()
-            ?: allocationResult(
-                copy(
-                    nextRobIdValue = nextRobIdValue + 1,
-                    jumpAllocations = jumpAllocations + JumpAllocationCall(
-                        destinationRegisterAddress,
-                        instructionAddress,
-                        predictedNextInstructionAddress
+        when {
+            jumpFailure != null -> jumpFailure.asFailure()
+            jumpUnavailable -> ReorderBufferAllocationUnavailable.asSuccess()
+            else ->
+                allocationResult(
+                    copy(
+                        nextRobIdValue = nextRobIdValue + 1,
+                        jumpAllocations = jumpAllocations + JumpAllocationCall(
+                            destinationRegisterAddress,
+                            instructionAddress,
+                            predictedNextInstructionAddress
+                        )
                     )
                 )
-            )
+        }
 
     override fun enqueueBranch(
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
     ) =
-        branchFailure
-            ?.asFailure()
-            ?: allocationResult(
-                copy(
-                    nextRobIdValue = nextRobIdValue + 1,
-                    branchAllocations = branchAllocations + BranchAllocationCall(
-                        instructionAddress,
-                        predictedNextInstructionAddress
+        when {
+            branchFailure != null -> branchFailure.asFailure()
+            branchUnavailable -> ReorderBufferAllocationUnavailable.asSuccess()
+            else ->
+                allocationResult(
+                    copy(
+                        nextRobIdValue = nextRobIdValue + 1,
+                        branchAllocations = branchAllocations + BranchAllocationCall(
+                            instructionAddress,
+                            predictedNextInstructionAddress
+                        )
                     )
                 )
-            )
+        }
 
     override fun enqueueStore(
         operation: StoreOperation,
         valueOperand: Operand
     ) =
-        storeFailure
-            ?.asFailure()
-            ?: allocationResult(
-                copy(
-                    nextRobIdValue = nextRobIdValue + 1,
-                    storeAllocations = storeAllocations + StoreAllocationCall(operation, valueOperand)
+        when {
+            storeFailure != null -> storeFailure.asFailure()
+            storeUnavailable -> ReorderBufferAllocationUnavailable.asSuccess()
+            else ->
+                allocationResult(
+                    copy(
+                        nextRobIdValue = nextRobIdValue + 1,
+                        storeAllocations = storeAllocations + StoreAllocationCall(operation, valueOperand)
+                    )
                 )
-            )
+        }
 
     override fun acceptCommonDataBus(commonDataBus: CommonDataBus) = this
 

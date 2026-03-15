@@ -16,26 +16,26 @@ data class StubCommitHeadReorderBuffer(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
     ) =
-        ReorderBufferFull.asFailure()
+        ReorderBufferAllocationUnavailable.asSuccess()
 
     override fun enqueueJump(
         destinationRegisterAddress: RegisterAddress,
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
     ) =
-        ReorderBufferFull.asFailure()
+        ReorderBufferAllocationUnavailable.asSuccess()
 
     override fun enqueueBranch(
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
     ) =
-        ReorderBufferFull.asFailure()
+        ReorderBufferAllocationUnavailable.asSuccess()
 
     override fun enqueueStore(
         operation: StoreOperation,
         valueOperand: Operand
     ) =
-        ReorderBufferFull.asFailure()
+        ReorderBufferAllocationUnavailable.asSuccess()
 
     override fun acceptCommonDataBus(commonDataBus: CommonDataBus) = this
 

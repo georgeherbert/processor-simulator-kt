@@ -1,7 +1,6 @@
 package reservationstation
 
 import commondatabus.CommonDataBus
-import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import types.*
 
@@ -12,13 +11,21 @@ interface ReservationStationBank<T> {
         rightOperand: Operand,
         immediate: Word,
         robId: RobId,
-        instructionAddress: InstructionAddress,
-    ): ProcessorResult<ReservationStationBank<T>>
+        instructionAddress: InstructionAddress
+    ): ProcessorResult<ReservationStationEnqueueOutcome<T>>
 
     fun dispatchReady(maxCount: Int): ReservationStationDispatchResult<T>
     fun acceptCommonDataBus(commonDataBus: CommonDataBus): ReservationStationBank<T>
     fun clear(): ReservationStationBank<T>
 }
+
+sealed interface ReservationStationEnqueueOutcome<out T>
+
+data class ReservationStationEnqueueResult<T>(
+    val reservationStationBank: ReservationStationBank<T>
+) : ReservationStationEnqueueOutcome<T>
+
+data object ReservationStationEnqueueUnavailable : ReservationStationEnqueueOutcome<Nothing>
 
 data class ReservationStationEntry<T>(
     val reservationStationId: ReservationStationId,
@@ -27,12 +34,12 @@ data class ReservationStationEntry<T>(
     val rightOperand: Operand,
     val immediate: Word,
     val robId: RobId,
-    val instructionAddress: InstructionAddress,
+    val instructionAddress: InstructionAddress
 )
 
 data class ReservationStationDispatchResult<T>(
     val reservationStationBank: ReservationStationBank<T>,
-    val entries: List<ReadyReservationStationEntry<T>>,
+    val entries: List<ReadyReservationStationEntry<T>>
 )
 
 data class ReadyReservationStationEntry<T>(
@@ -42,14 +49,14 @@ data class ReadyReservationStationEntry<T>(
     val rightValue: Word,
     val immediate: Word,
     val robId: RobId,
-    val instructionAddress: InstructionAddress,
+    val instructionAddress: InstructionAddress
 )
 
 @ConsistentCopyVisibility
 data class RealReservationStationBank<T> private constructor(
     private val capacity: Int,
     private val nextReservationStationIdValue: Int,
-    private val entries: List<ReservationStationEntry<T>>,
+    private val entries: List<ReservationStationEntry<T>>
 ) : ReservationStationBank<T> {
 
     constructor(size: Size) : this(size.value, 1, emptyList())
@@ -60,22 +67,24 @@ data class RealReservationStationBank<T> private constructor(
         rightOperand: Operand,
         immediate: Word,
         robId: RobId,
-        instructionAddress: InstructionAddress,
+        instructionAddress: InstructionAddress
     ) =
         when (entries.size >= capacity) {
-            true -> ReservationStationFull.asFailure()
+            true -> ReservationStationEnqueueUnavailable.asSuccess()
             false ->
-                copy(
-                    entries = entries + ReservationStationEntry(
-                        ReservationStationId(nextReservationStationIdValue),
-                        operation,
-                        leftOperand,
-                        rightOperand,
-                        immediate,
-                        robId,
-                        instructionAddress
-                    ),
-                    nextReservationStationIdValue = nextReservationStationIdValue + 1
+                ReservationStationEnqueueResult(
+                    copy(
+                        entries = entries + ReservationStationEntry(
+                            ReservationStationId(nextReservationStationIdValue),
+                            operation,
+                            leftOperand,
+                            rightOperand,
+                            immediate,
+                            robId,
+                            instructionAddress
+                        ),
+                        nextReservationStationIdValue = nextReservationStationIdValue + 1
+                    )
                 ).asSuccess()
         }
 

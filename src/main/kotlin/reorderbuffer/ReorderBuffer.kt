@@ -10,23 +10,23 @@ interface ReorderBuffer {
     fun enqueueRegisterWrite(
         destinationRegisterAddress: RegisterAddress,
         category: RegisterWriteReorderBufferEntryCategory
-    ): ProcessorResult<ReorderBufferAllocationResult>
+    ): ProcessorResult<ReorderBufferAllocationOutcome>
 
     fun enqueueJump(
         destinationRegisterAddress: RegisterAddress,
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
-    ): ProcessorResult<ReorderBufferAllocationResult>
+    ): ProcessorResult<ReorderBufferAllocationOutcome>
 
     fun enqueueBranch(
         instructionAddress: InstructionAddress,
         predictedNextInstructionAddress: InstructionAddress
-    ): ProcessorResult<ReorderBufferAllocationResult>
+    ): ProcessorResult<ReorderBufferAllocationOutcome>
 
     fun enqueueStore(
         operation: StoreOperation,
         valueOperand: Operand
-    ): ProcessorResult<ReorderBufferAllocationResult>
+    ): ProcessorResult<ReorderBufferAllocationOutcome>
 
     fun acceptCommonDataBus(commonDataBus: CommonDataBus): ReorderBuffer
     fun recordStoreAddress(robId: RobId, address: DataAddress): ReorderBuffer
@@ -45,7 +45,11 @@ interface ReorderBuffer {
 data class ReorderBufferAllocationResult(
     val reorderBuffer: ReorderBuffer,
     val robId: RobId
-)
+) : ReorderBufferAllocationOutcome
+
+sealed interface ReorderBufferAllocationOutcome
+
+data object ReorderBufferAllocationUnavailable : ReorderBufferAllocationOutcome
 
 data class ReorderBufferCommitHeadResult(
     val reorderBuffer: ReorderBuffer,
@@ -227,8 +231,12 @@ data class RealReorderBuffer private constructor(
 
     private fun allocate(entry: ReorderBufferEntry) =
         when (entries.size >= capacity) {
-            true -> ReorderBufferFull.asFailure()
-            false -> ReorderBufferAllocationResult(copy(entries = entries + entry, nextRobIdValue = nextRobIdValue + 1), entry.robId).asSuccess()
+            true -> ReorderBufferAllocationUnavailable.asSuccess()
+            false ->
+                ReorderBufferAllocationResult(
+                    copy(entries = entries + entry, nextRobIdValue = nextRobIdValue + 1),
+                    entry.robId
+                ).asSuccess()
         }
 
     private fun nextRobId() = RobId(nextRobIdValue)

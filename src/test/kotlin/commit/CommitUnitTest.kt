@@ -274,12 +274,7 @@ class CommitUnitTest {
         branchTargetPredictor: DynamicBranchTargetPredictor
     ) =
         commitUnit
-            .nextCycleDelta(
-                reorderBuffer,
-                registerFile,
-                mainMemory,
-                branchTargetPredictor
-            )
+            .nextCycleDelta(reorderBuffer)
             .flatMap { cycleDelta ->
                 cycleDelta.applyToReorderBuffer(reorderBuffer)
                     .flatMap { nextReorderBuffer ->

@@ -31,20 +31,18 @@ data object InstructionQueueEmpty : InstructionQueueError
 data class InstructionQueueSlotCountInvalid(val count: Int) : InstructionQueueError
 
 sealed interface ReorderBufferError : ProcessorError
-data object ReorderBufferFull : ReorderBufferError
 data object ReorderBufferEmpty : ReorderBufferError
 data object ReorderBufferHeadNotReady : ReorderBufferError
-
-sealed interface ReservationStationError : ProcessorError
-data object ReservationStationFull : ReservationStationError
-
-sealed interface MemoryBufferError : ProcessorError
-data object MemoryBufferFull : MemoryBufferError
 
 sealed interface CommitError : ProcessorError
 data class CommitEntryValueUnavailable(val robId: RobId) : CommitError
 data class CommitEntryAddressUnavailable(val robId: RobId) : CommitError
 data class CommitEntryActualNextInstructionAddressUnavailable(val robId: RobId) : CommitError
+
+sealed interface IssueError : ProcessorError
+data object IssueCycleDeltaReorderBufferAllocationUnavailable : IssueError
+data object IssueCycleDeltaReservationStationEnqueueUnavailable : IssueError
+data object IssueCycleDeltaMemoryBufferEnqueueUnavailable : IssueError
 
 sealed interface ProcessorExecutionError : ProcessorError
 data object ProcessorAlreadyHalted : ProcessorExecutionError

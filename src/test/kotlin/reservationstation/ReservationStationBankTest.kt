@@ -10,7 +10,7 @@ import commondatabus.StubCommonDataBus
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
-import testfixtures.isFailure
+import testfixtures.isReservationStationEnqueueResult
 import testfixtures.isSuccess
 import types.*
 
@@ -29,6 +29,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
 
         expectThat(reservationStationBank.dispatchReady(1).entries)
@@ -56,8 +57,8 @@ class ReservationStationBankTest {
                 InstructionAddress(8)
             )
         )
-            .isFailure()
-            .isEqualTo(ReservationStationFull)
+            .isSuccess()
+            .isEqualTo(ReservationStationEnqueueUnavailable)
     }
 
     @Test
@@ -73,6 +74,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
         val secondBank = expectThat(
             firstBank.enqueue(
@@ -85,6 +87,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
         val thirdBank = expectThat(
             secondBank.enqueue(
@@ -97,6 +100,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
 
         val dispatchResult = thirdBank.dispatchReady(1)
@@ -159,6 +163,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
         val commonDataBus = StubCommonDataBus(RobId(7), Word(11u))
 
@@ -195,6 +200,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
         val commonDataBus = StubCommonDataBus()
 
@@ -220,6 +226,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
             .subject
         val clearedReservationStationBank = reservationStationBank.clear()
 
@@ -237,6 +244,7 @@ class ReservationStationBankTest {
             )
         )
             .isSuccess()
+            .isReservationStationEnqueueResult()
     }
 
 }

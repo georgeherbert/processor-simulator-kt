@@ -31,13 +31,9 @@ class ExperimentViewTest {
 
         ExperimentParameter.entries.forEachIndexed { index, parameter ->
             val nextValue = index + 2
+            val updatedConfiguration = baseConfiguration.withParameter(parameter, nextValue)
 
-            expectThat(
-                valueForParameter(
-                    baseConfiguration.withParameter(parameter, nextValue),
-                    parameter
-                )
-            )
+            expectThat(parameter.valueIn(updatedConfiguration))
                 .isEqualTo(nextValue)
         }
     }
@@ -56,7 +52,7 @@ class ExperimentViewTest {
 
     @Test
     fun `toProcessorConfiguration recreates a processor configuration from the snapshot`() {
-        expectThat(
+        val configurationResult =
             benchmarkConfiguration()
                 .toExperimentConfigurationSnapshot()
                 .copy(
@@ -67,130 +63,30 @@ class ExperimentViewTest {
                     loadByteUnsignedLatency = 7
                 )
                 .toProcessorConfiguration()
-        )
+
+        expectThat(configurationResult)
             .isSuccess()
             .get { branchTargetBufferSize.value }
             .isEqualTo(5)
 
-        expectThat(
-            benchmarkConfiguration()
-                .toExperimentConfigurationSnapshot()
-                .copy(
-                    branchTargetBufferSize = 5,
-                    branchOutcomeCounterBitWidth = 3,
-                    addLatency = 4,
-                    jumpAndLinkRegisterLatency = 6,
-                    loadByteUnsignedLatency = 7
-                )
-                .toProcessorConfiguration()
-        )
+        expectThat(configurationResult)
             .isSuccess()
             .get { branchOutcomeCounterBitWidth.value }
             .isEqualTo(3)
 
-        expectThat(
-            benchmarkConfiguration()
-                .toExperimentConfigurationSnapshot()
-                .copy(
-                    branchTargetBufferSize = 5,
-                    branchOutcomeCounterBitWidth = 3,
-                    addLatency = 4,
-                    jumpAndLinkRegisterLatency = 6,
-                    loadByteUnsignedLatency = 7
-                )
-                .toProcessorConfiguration()
-        )
+        expectThat(configurationResult)
             .isSuccess()
             .get { arithmeticLogicLatencies.add.value }
             .isEqualTo(4)
 
-        expectThat(
-            benchmarkConfiguration()
-                .toExperimentConfigurationSnapshot()
-                .copy(
-                    branchTargetBufferSize = 5,
-                    branchOutcomeCounterBitWidth = 3,
-                    addLatency = 4,
-                    jumpAndLinkRegisterLatency = 6,
-                    loadByteUnsignedLatency = 7
-                )
-                .toProcessorConfiguration()
-        )
+        expectThat(configurationResult)
             .isSuccess()
             .get { branchLatencies.jumpAndLinkRegister.value }
             .isEqualTo(6)
 
-        expectThat(
-            benchmarkConfiguration()
-                .toExperimentConfigurationSnapshot()
-                .copy(
-                    branchTargetBufferSize = 5,
-                    branchOutcomeCounterBitWidth = 3,
-                    addLatency = 4,
-                    jumpAndLinkRegisterLatency = 6,
-                    loadByteUnsignedLatency = 7
-                )
-                .toProcessorConfiguration()
-        )
+        expectThat(configurationResult)
             .isSuccess()
             .get { memoryLatencies.loadByteUnsigned.value }
             .isEqualTo(7)
     }
-
-    private fun valueForParameter(
-        configuration: ExperimentConfigurationSnapshot,
-        parameter: ExperimentParameter
-    ) =
-        when (parameter) {
-            ExperimentParameter.FetchWidth -> configuration.fetchWidth
-            ExperimentParameter.IssueWidth -> configuration.issueWidth
-            ExperimentParameter.CommitWidth -> configuration.commitWidth
-            ExperimentParameter.InstructionQueueSize -> configuration.instructionQueueSize
-            ExperimentParameter.ReorderBufferSize -> configuration.reorderBufferSize
-            ExperimentParameter.BranchTargetBufferSize -> configuration.branchTargetBufferSize
-            ExperimentParameter.BranchOutcomeCounterBitWidth -> configuration.branchOutcomeCounterBitWidth
-            ExperimentParameter.ArithmeticLogicReservationStationCount ->
-                configuration.arithmeticLogicReservationStationCount
-
-            ExperimentParameter.BranchReservationStationCount ->
-                configuration.branchReservationStationCount
-
-            ExperimentParameter.MemoryBufferCount -> configuration.memoryBufferCount
-            ExperimentParameter.ArithmeticLogicUnitCount -> configuration.arithmeticLogicUnitCount
-            ExperimentParameter.BranchUnitCount -> configuration.branchUnitCount
-            ExperimentParameter.AddressUnitCount -> configuration.addressUnitCount
-            ExperimentParameter.MemoryUnitCount -> configuration.memoryUnitCount
-            ExperimentParameter.AddLatency -> configuration.addLatency
-            ExperimentParameter.LoadUpperImmediateLatency -> configuration.loadUpperImmediateLatency
-            ExperimentParameter.AddUpperImmediateToProgramCounterLatency ->
-                configuration.addUpperImmediateToProgramCounterLatency
-
-            ExperimentParameter.SubtractLatency -> configuration.subtractLatency
-            ExperimentParameter.ShiftLeftLogicalLatency -> configuration.shiftLeftLogicalLatency
-            ExperimentParameter.SetLessThanSignedLatency -> configuration.setLessThanSignedLatency
-            ExperimentParameter.SetLessThanUnsignedLatency -> configuration.setLessThanUnsignedLatency
-            ExperimentParameter.ExclusiveOrLatency -> configuration.exclusiveOrLatency
-            ExperimentParameter.ShiftRightLogicalLatency -> configuration.shiftRightLogicalLatency
-            ExperimentParameter.ShiftRightArithmeticLatency -> configuration.shiftRightArithmeticLatency
-            ExperimentParameter.OrLatency -> configuration.orLatency
-            ExperimentParameter.AndLatency -> configuration.andLatency
-            ExperimentParameter.JumpAndLinkLatency -> configuration.jumpAndLinkLatency
-            ExperimentParameter.JumpAndLinkRegisterLatency -> configuration.jumpAndLinkRegisterLatency
-            ExperimentParameter.BranchEqualLatency -> configuration.branchEqualLatency
-            ExperimentParameter.BranchNotEqualLatency -> configuration.branchNotEqualLatency
-            ExperimentParameter.BranchLessThanSignedLatency -> configuration.branchLessThanSignedLatency
-            ExperimentParameter.BranchLessThanUnsignedLatency -> configuration.branchLessThanUnsignedLatency
-            ExperimentParameter.BranchGreaterThanOrEqualSignedLatency ->
-                configuration.branchGreaterThanOrEqualSignedLatency
-
-            ExperimentParameter.BranchGreaterThanOrEqualUnsignedLatency ->
-                configuration.branchGreaterThanOrEqualUnsignedLatency
-
-            ExperimentParameter.AddressLatency -> configuration.addressLatency
-            ExperimentParameter.LoadWordLatency -> configuration.loadWordLatency
-            ExperimentParameter.LoadHalfWordLatency -> configuration.loadHalfWordLatency
-            ExperimentParameter.LoadHalfWordUnsignedLatency -> configuration.loadHalfWordUnsignedLatency
-            ExperimentParameter.LoadByteLatency -> configuration.loadByteLatency
-            ExperimentParameter.LoadByteUnsignedLatency -> configuration.loadByteUnsignedLatency
-        }
 }

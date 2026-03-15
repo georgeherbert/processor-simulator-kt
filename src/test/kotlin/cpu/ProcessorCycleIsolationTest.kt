@@ -7,9 +7,8 @@ import arithmeticlogic.RealArithmeticLogicUnitSet
 import commit.CallbackCommitUnitStub
 import commit.CommitCycleDelta
 import commit.NoCommitControlEvent
-import dev.forkhandles.result4k.Failure
-import dev.forkhandles.result4k.Success
 import decoder.RealInstructionDecoder
+import dev.forkhandles.result4k.flatMap
 import dev.forkhandles.result4k.asSuccess
 import fetch.FetchWidth
 import instructionqueue.InstructionQueueEntry
@@ -19,11 +18,14 @@ import issue.IssueCycleDelta
 import mainmemory.StubMainMemory
 import org.junit.jupiter.api.Test
 import reorderbuffer.ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+import reorderbuffer.ReorderBufferAllocationResult
+import reorderbuffer.ReorderBufferAllocationUnavailable
 import reorderbuffer.RealReorderBuffer
 import commondatabus.StubCommonDataBus
 import reservationstation.ReadyReservationStationEntry
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
+import testfixtures.isAllocationResult
 import testfixtures.isFailure
 import testfixtures.isSuccess
 import types.*
@@ -77,7 +79,7 @@ class ProcessorCycleIsolationTest {
                     emptyList()
                 ).asSuccess()
             },
-            CallbackCommitUnitStub { _, _, _, _ ->
+            CallbackCommitUnitStub { _ ->
                 CommitCycleDelta.none().asSuccess()
             }
         )
@@ -114,25 +116,30 @@ class ProcessorCycleIsolationTest {
             configuration,
             RealInstructionDecoder,
             CallbackIssueUnitStub { _, _, _, reorderBuffer, _, _, _ ->
-                when (reorderBuffer.enqueueRegisterWrite(RegisterAddress(5), ArithmeticLogicRegisterWriteReorderBufferEntryCategory)) {
-                    is Failure -> IssueCycleDelta.none().asSuccess()
-                    is Success ->
-                        IssueCycleDelta(
-                            0,
-                            emptyList(),
-                            listOf(
-                                IssueCycleDelta.RegisterWriteAllocation(
-                                    RegisterAddress(5),
-                                    ArithmeticLogicRegisterWriteReorderBufferEntryCategory
-                                )
-                            ),
-                            emptyList(),
-                            emptyList(),
-                            emptyList()
-                        ).asSuccess()
+                reorderBuffer.enqueueRegisterWrite(
+                    RegisterAddress(5),
+                    ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+                ).flatMap { allocationOutcome ->
+                    when (allocationOutcome) {
+                        ReorderBufferAllocationUnavailable -> IssueCycleDelta.none().asSuccess()
+                        is ReorderBufferAllocationResult ->
+                            IssueCycleDelta(
+                                0,
+                                emptyList(),
+                                listOf(
+                                    IssueCycleDelta.RegisterWriteAllocation(
+                                        RegisterAddress(5),
+                                        ArithmeticLogicRegisterWriteReorderBufferEntryCategory
+                                    )
+                                ),
+                                emptyList(),
+                                emptyList(),
+                                emptyList()
+                            ).asSuccess()
+                    }
                 }
             },
-            CallbackCommitUnitStub { _, _, _, _ ->
+            CallbackCommitUnitStub { _ ->
                 CommitCycleDelta(
                     1,
                     emptyList(),
@@ -180,6 +187,7 @@ class ProcessorCycleIsolationTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
         val instructionQueue = expectThat(
             RealInstructionQueue(Size(2)).enqueue(
@@ -226,7 +234,7 @@ class ProcessorCycleIsolationTest {
             configuration,
             RealInstructionDecoder,
             issue.RealIssueUnit(IssueWidth(1)),
-            CallbackCommitUnitStub { _, _, _, _ ->
+            CallbackCommitUnitStub { _ ->
                 CommitCycleDelta.none().asSuccess()
             }
         )
@@ -270,10 +278,11 @@ class ProcessorCycleIsolationTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
-            .let { allocationResult ->
-                allocationResult.reorderBuffer.recordBranchActualNextInstructionAddress(
-                    allocationResult.robId,
+            .run {
+                reorderBuffer.recordBranchActualNextInstructionAddress(
+                    robId,
                     InstructionAddress(4)
                 )
             }

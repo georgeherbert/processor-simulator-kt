@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import reorderbuffer.StubReorderBuffer
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
+import testfixtures.isMemoryBufferEnqueueResult
 import testfixtures.isSuccess
 import types.*
 
@@ -23,6 +24,7 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
 
         val secondQueue = expectThat(
@@ -35,6 +37,7 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
 
         expectThat(secondQueue.dispatchAddressComputations(2).workItems)
@@ -53,6 +56,7 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
 
         val addressDispatchResult = queue.dispatchAddressComputations(1)
@@ -98,6 +102,7 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
         val queueWithLoad = expectThat(
             queueWithStore.enqueue(
@@ -109,6 +114,7 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
 
         val addressDispatchResult = queueWithLoad.dispatchAddressComputations(1)
@@ -142,9 +148,40 @@ class MemoryBufferQueueTest {
             )
         )
             .isSuccess()
+            .isMemoryBufferEnqueueResult()
             .subject
 
         expectThat(queue.removeEntry(MemoryBufferId(1)).dispatchAddressComputations(1).workItems)
             .isEqualTo(emptyList())
+    }
+
+    @Test
+    fun `enqueue returns unavailable when the memory buffer is full`() {
+        val fullOutcome = expectThat(
+            RealMemoryBufferQueue(Size(1))
+                .enqueue(
+                    LoadMemoryBufferOperation(LoadWordOperation),
+                    ReadyOperand(Word(4u)),
+                    ReadyOperand(Word(0u)),
+                    Word(8u),
+                    RobId(1)
+                )
+        )
+            .isSuccess()
+            .isMemoryBufferEnqueueResult()
+            .get {
+                enqueue(
+                    LoadMemoryBufferOperation(LoadWordOperation),
+                    ReadyOperand(Word(4u)),
+                    ReadyOperand(Word(0u)),
+                    Word(8u),
+                    RobId(2)
+                )
+            }
+            .isSuccess()
+            .subject
+
+        expectThat(fullOutcome)
+            .isEqualTo(MemoryBufferEnqueueUnavailable)
     }
 }

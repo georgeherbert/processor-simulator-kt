@@ -8,6 +8,7 @@ import strikt.assertions.isA
 import strikt.assertions.isEqualTo
 import strikt.assertions.isFalse
 import strikt.assertions.isTrue
+import testfixtures.isAllocationResult
 import testfixtures.isFailure
 import testfixtures.isSuccess
 import types.*
@@ -23,6 +24,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         expectThat(allocationResult.reorderBuffer.commitReadyHead())
@@ -58,6 +60,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
         val operand = PendingOperand(allocationResult.robId)
 
@@ -74,6 +77,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
         val readyReorderBuffer = allocationResult.reorderBuffer.acceptCommonDataBus(
             StubCommonDataBus(allocationResult.robId, Word(42u))
@@ -92,6 +96,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         expectThat(allocationResult.reorderBuffer.commitReadyHeadIfPossible())
@@ -107,6 +112,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
         val readyReorderBuffer = allocationResult.reorderBuffer.acceptCommonDataBus(
             StubCommonDataBus(allocationResult.robId, Word(42u))
@@ -138,12 +144,14 @@ class ReorderBufferTest {
             RealReorderBuffer(Size(3)).enqueueStore(StoreWordOperation, ReadyOperand(Word(10u)))
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         val secondStoreAllocation = expectThat(
             firstStoreAllocation.reorderBuffer.enqueueStore(StoreWordOperation, ReadyOperand(Word(20u)))
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         val reorderBuffer = secondStoreAllocation.reorderBuffer
@@ -167,6 +175,7 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         expectThat(allocationResult.reorderBuffer.commitReadyHead())
@@ -203,9 +212,26 @@ class ReorderBufferTest {
             )
         )
             .isSuccess()
+            .isAllocationResult()
             .subject
 
         expectThat(allocationResult.reorderBuffer.clear().commitReadyHeadIfPossible())
             .isEqualTo(ReorderBufferCommitReadyHeadUnavailable)
+    }
+
+    @Test
+    fun `enqueue returns unavailable when the reorder buffer is full`() {
+        val fullOutcome = expectThat(
+            RealReorderBuffer(Size(1))
+                .enqueueRegisterWrite(RegisterAddress(1), ArithmeticLogicRegisterWriteReorderBufferEntryCategory)
+        )
+            .isSuccess()
+            .isAllocationResult()
+            .get { reorderBuffer.enqueueRegisterWrite(RegisterAddress(2), ArithmeticLogicRegisterWriteReorderBufferEntryCategory) }
+            .isSuccess()
+            .subject
+
+        expectThat(fullOutcome)
+            .isEqualTo(ReorderBufferAllocationUnavailable)
     }
 }

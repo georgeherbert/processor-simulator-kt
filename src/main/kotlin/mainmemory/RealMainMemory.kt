@@ -21,7 +21,6 @@ import types.toWord
 data class RealMainMemory private constructor(private val bytes: List<Byte>) : MainMemory {
     constructor(size: Size) : this(zeroBytes(size))
 
-    // TODO [GH] Will need to % here when we introduce speculative execution
     override fun loadByte(address: Int) =
         address
             .check()

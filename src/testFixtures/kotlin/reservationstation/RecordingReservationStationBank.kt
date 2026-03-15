@@ -16,13 +16,16 @@ data class ReservationStationEnqueueCall<T>(
 
 @ConsistentCopyVisibility
 data class RecordingReservationStationBank<T> private constructor(
+    private val enqueueUnavailable: Boolean,
     private val enqueueFailure: ProcessorError?,
     val enqueueCalls: List<ReservationStationEnqueueCall<T>>
 ) : ReservationStationBank<T> {
 
-    constructor() : this(null, emptyList())
+    constructor() : this(false, null, emptyList())
 
-    constructor(enqueueFailure: ProcessorError) : this(enqueueFailure, emptyList())
+    constructor(enqueueUnavailable: ReservationStationEnqueueUnavailable) : this(true, null, emptyList())
+
+    constructor(enqueueFailure: ProcessorError) : this(false, enqueueFailure, emptyList())
 
     override fun enqueue(
         operation: T,
@@ -32,18 +35,23 @@ data class RecordingReservationStationBank<T> private constructor(
         robId: RobId,
         instructionAddress: InstructionAddress
     ) =
-        enqueueFailure
-            ?.asFailure()
-            ?: copy(
-                enqueueCalls = enqueueCalls + ReservationStationEnqueueCall(
-                    operation,
-                    leftOperand,
-                    rightOperand,
-                    immediate,
-                    robId,
-                    instructionAddress
-                )
-            ).asSuccess()
+        when {
+            enqueueFailure != null -> enqueueFailure.asFailure()
+            enqueueUnavailable -> ReservationStationEnqueueUnavailable.asSuccess()
+            else ->
+                ReservationStationEnqueueResult(
+                    copy(
+                        enqueueCalls = enqueueCalls + ReservationStationEnqueueCall(
+                            operation,
+                            leftOperand,
+                            rightOperand,
+                            immediate,
+                            robId,
+                            instructionAddress
+                        )
+                    )
+                ).asSuccess()
+        }
 
     override fun dispatchReady(maxCount: Int) =
         ReservationStationDispatchResult(

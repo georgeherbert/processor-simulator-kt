@@ -16,13 +16,16 @@ data class MemoryBufferEnqueueCall(
 
 @ConsistentCopyVisibility
 data class RecordingMemoryBufferQueue private constructor(
+    private val enqueueUnavailable: Boolean,
     private val enqueueFailure: ProcessorError?,
     val enqueueCalls: List<MemoryBufferEnqueueCall>
 ) : MemoryBufferQueue {
 
-    constructor() : this(null, emptyList())
+    constructor() : this(false, null, emptyList())
 
-    constructor(enqueueFailure: ProcessorError) : this(enqueueFailure, emptyList())
+    constructor(enqueueUnavailable: MemoryBufferEnqueueUnavailable) : this(true, null, emptyList())
+
+    constructor(enqueueFailure: ProcessorError) : this(false, enqueueFailure, emptyList())
 
     override fun enqueue(
         operation: MemoryBufferOperation,
@@ -31,17 +34,22 @@ data class RecordingMemoryBufferQueue private constructor(
         immediate: Word,
         robId: RobId
     ) =
-        enqueueFailure
-            ?.asFailure()
-            ?: copy(
-                enqueueCalls = enqueueCalls + MemoryBufferEnqueueCall(
-                    operation,
-                    baseOperand,
-                    valueOperand,
-                    immediate,
-                    robId
-                )
-            ).asSuccess()
+        when {
+            enqueueFailure != null -> enqueueFailure.asFailure()
+            enqueueUnavailable -> MemoryBufferEnqueueUnavailable.asSuccess()
+            else ->
+                MemoryBufferEnqueueResult(
+                    copy(
+                        enqueueCalls = enqueueCalls + MemoryBufferEnqueueCall(
+                            operation,
+                            baseOperand,
+                            valueOperand,
+                            immediate,
+                            robId
+                        )
+                    )
+                ).asSuccess()
+        }
 
     override fun dispatchAddressComputations(maxCount: Int) =
         MemoryBufferAddressDispatchResult(

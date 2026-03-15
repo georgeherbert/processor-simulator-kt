@@ -3,7 +3,6 @@ package memorybuffer
 import commondatabus.CommonDataBus
 import decoder.LoadOperation
 import decoder.StoreOperation
-import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
 import reorderbuffer.ReorderBuffer
 import types.*
@@ -15,7 +14,7 @@ interface MemoryBufferQueue {
         valueOperand: Operand,
         immediate: Word,
         robId: RobId
-    ): ProcessorResult<MemoryBufferQueue>
+    ): ProcessorResult<MemoryBufferEnqueueOutcome>
 
     fun dispatchAddressComputations(maxCount: Int): MemoryBufferAddressDispatchResult
     fun recordComputedAddress(memoryBufferId: MemoryBufferId, address: DataAddress): MemoryBufferQueue
@@ -24,6 +23,14 @@ interface MemoryBufferQueue {
     fun acceptCommonDataBus(commonDataBus: CommonDataBus): MemoryBufferQueue
     fun clear(): MemoryBufferQueue
 }
+
+sealed interface MemoryBufferEnqueueOutcome
+
+data class MemoryBufferEnqueueResult(
+    val memoryBufferQueue: MemoryBufferQueue
+) : MemoryBufferEnqueueOutcome
+
+data object MemoryBufferEnqueueUnavailable : MemoryBufferEnqueueOutcome
 
 sealed interface MemoryBufferOperation
 
@@ -98,19 +105,21 @@ data class RealMemoryBufferQueue private constructor(
         robId: RobId
     ) =
         when (entries.size >= capacity) {
-            true -> MemoryBufferFull.asFailure()
+            true -> MemoryBufferEnqueueUnavailable.asSuccess()
             false ->
-                copy(
-                    entries = entries + MemoryBufferEntry(
-                        MemoryBufferId(nextMemoryBufferIdValue),
-                        operation,
-                        baseOperand,
-                        valueOperand,
-                        immediate,
-                        robId,
-                        QueuedForAddressMemoryBufferState
-                    ),
-                    nextMemoryBufferIdValue = nextMemoryBufferIdValue + 1
+                MemoryBufferEnqueueResult(
+                    copy(
+                        entries = entries + MemoryBufferEntry(
+                            MemoryBufferId(nextMemoryBufferIdValue),
+                            operation,
+                            baseOperand,
+                            valueOperand,
+                            immediate,
+                            robId,
+                            QueuedForAddressMemoryBufferState
+                        ),
+                        nextMemoryBufferIdValue = nextMemoryBufferIdValue + 1
+                    )
                 ).asSuccess()
         }
 

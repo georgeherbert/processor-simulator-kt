@@ -12,6 +12,7 @@ import instructionqueue.InstructionQueue
 import instructionqueue.InstructionQueueEntry
 import instructionqueue.StubInstructionQueue
 import memorybuffer.LoadAddressComputationWork
+import memorybuffer.MemoryBufferEnqueueUnavailable
 import memorybuffer.RecordingMemoryBufferQueue
 import memorybuffer.StoreAddressComputationWork
 import org.junit.jupiter.api.Test
@@ -21,6 +22,7 @@ import reorderbuffer.ReorderBuffer
 import reorderbuffer.StubReorderBuffer
 import reservationstation.ReadyReservationStationEntry
 import reservationstation.RecordingReservationStationBank
+import reservationstation.ReservationStationEnqueueUnavailable
 import reservationstation.ReservationStationBank
 import strikt.api.expectThat
 import strikt.assertions.isA
@@ -286,7 +288,7 @@ class IssueUnitTest {
                 queueOf(listOf(Word(1u))),
                 decoderFor(Word(1u), arithmeticImmediate(AddImmediateOperation)),
                 StubRegisterFile(),
-                StubReorderBuffer().withRegisterWriteFailure(ReorderBufferFull),
+                StubReorderBuffer().withRegisterWriteUnavailable(),
                 RecordingReservationStationBank(),
                 RecordingReservationStationBank(),
                 RecordingMemoryBufferQueue()
@@ -308,7 +310,7 @@ class IssueUnitTest {
                 decoderFor(Word(1u), arithmeticImmediate(AddImmediateOperation)),
                 StubRegisterFile(),
                 StubReorderBuffer(),
-                RecordingReservationStationBank(ReservationStationFull),
+                RecordingReservationStationBank(ReservationStationEnqueueUnavailable),
                 RecordingReservationStationBank(),
                 RecordingMemoryBufferQueue()
             )
@@ -339,7 +341,7 @@ class IssueUnitTest {
                 StubReorderBuffer(),
                 RecordingReservationStationBank(),
                 RecordingReservationStationBank(),
-                RecordingMemoryBufferQueue(MemoryBufferFull)
+                RecordingMemoryBufferQueue(MemoryBufferEnqueueUnavailable)
             )
         )
             .isSuccess()
