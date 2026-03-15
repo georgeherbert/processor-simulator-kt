@@ -100,15 +100,21 @@ textarea {
   align-items: start;
 }
 
+.layout > * {
+  min-width: 0;
+}
+
 .controlColumn,
 .resultsColumn {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .section {
   border-top: 3px solid var(--line);
   padding-top: 12px;
+  min-width: 0;
 }
 
 .errorSection {
@@ -123,6 +129,10 @@ textarea {
   margin-bottom: 12px;
 }
 
+.sectionHeader > * {
+  min-width: 0;
+}
+
 .sectionHeader h2 {
   margin: 0;
   font-size: 1.45rem;
@@ -133,6 +143,7 @@ textarea {
   color: var(--muted);
   font-size: 0.96rem;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .status {
@@ -228,6 +239,7 @@ textarea {
   font-size: 0.9rem;
   line-height: 1.45;
   white-space: pre;
+  max-width: 100%;
 }
 
 .configurationActions {
@@ -286,10 +298,14 @@ textarea {
 .resultSummary strong {
   font-size: 1.15rem;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .resultSummary span {
   color: var(--muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .overviewStrip {
@@ -325,12 +341,14 @@ textarea {
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 10px;
+  min-width: 0;
 }
 
 .chart {
   display: block;
   width: 100%;
   height: auto;
+  max-width: 100%;
 }
 
 .axisLine {
