@@ -2,7 +2,7 @@
 
 Immutable Kotlin/JVM RV32I processor simulator with a Ktor backend and a React frontend for benchmark sweep experiments.
 
-The repository ships the Kotlin simulator, web app, and bundled benchmark programs directly. There is no separate reference C implementation in-tree.
+The repository ships the Kotlin simulator, web app, and bundled benchmark programs directly.
 
 ## Prerequisites
 
@@ -14,8 +14,6 @@ The repository ships the Kotlin simulator, web app, and bundled benchmark progra
 The backend compiles the bundled benchmark C programs on demand, so the RISC-V toolchain needs to be on `PATH`.
 
 ## Run The App
-
-### Simplest path
 
 Run the backend and use the frontend it serves:
 
@@ -41,56 +39,14 @@ The frontend lets you:
 - sweep one processor parameter across a numeric range
 - plot parameter value on the X axis against average instructions per cycle on the Y axis
 
-### Frontend dev mode
-
-If you want hot reload for the React app:
-
-Terminal 1:
-
-```bash
-./gradlew run
-```
-
-Terminal 2:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Then open:
-
-```text
-http://localhost:5173
-```
-
-The Vite dev server proxies `/api` to `http://127.0.0.1:8080`.
-
 ## Useful Commands
-
-Run the full project checks:
-
-```bash
-./gradlew clean build
-```
-
-Run the stricter local gate:
 
 ```bash
 ./pre-commit
 ```
 
-Run only the frontend tests:
-
 ```bash
-./gradlew frontendTest
-```
-
-Run only the frontend build:
-
-```bash
-./gradlew frontendBuild
+./gradlew run
 ```
 
 ## Backend Structure
