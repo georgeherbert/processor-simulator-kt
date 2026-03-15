@@ -31,6 +31,16 @@ class InstructionQueueTest {
             .isSuccess()
             .get { entryCount() }
             .isEqualTo(1)
+
+        expectThat(enqueueResult)
+            .isSuccess()
+            .get { dequeueIfPresent() }
+            .isEqualTo(
+                InstructionQueueDequeueResult(
+                    RealInstructionQueue(Size(2)),
+                    entry
+                )
+            )
     }
 
     @Test

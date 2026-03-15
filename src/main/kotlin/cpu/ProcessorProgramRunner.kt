@@ -2,8 +2,6 @@ package cpu
 
 import dev.forkhandles.result4k.asFailure
 import dev.forkhandles.result4k.asSuccess
-import dev.forkhandles.result4k.Failure
-import dev.forkhandles.result4k.Success
 import dev.forkhandles.result4k.flatMap
 import mainmemory.MainMemoryProgramLoader
 import mainmemory.RealMainMemoryProgramLoader
@@ -58,30 +56,31 @@ data class RealProcessorProgramRunner(
                 runUntilCompletion(
                     RealProcessor(configuration),
                     initialState,
-                    maxCycleCount,
                     maxCycleCount
                 )
             }
 
-    private tailrec fun runUntilCompletion(
+    private fun runUntilCompletion(
         processor: Processor,
         currentState: ProcessorState,
-        remainingCycleBudget: Int,
         maxCycleCount: Int
-    ): ProcessorResult<ProcessorProgramRunResult> =
-        when {
-            currentState.halted -> ProcessorProgramRunResult(currentState).asSuccess()
-            remainingCycleBudget <= 0 -> ProcessorCycleLimitExceeded(maxCycleCount).asFailure()
-            else ->
-                when (val nextStateResult = processor.step(currentState)) {
-                    is Failure -> nextStateResult.reason.asFailure()
-                    is Success ->
-                        runUntilCompletion(
-                            processor,
-                            nextStateResult.value,
-                            remainingCycleBudget - 1,
-                            maxCycleCount
-                        )
+    ): ProcessorResult<ProcessorProgramRunResult> {
+        val initialResult: ProcessorResult<ProcessorState> = currentState.asSuccess()
+
+        return (0 until maxCycleCount)
+            .fold(initialResult) { stateResult, _ ->
+                stateResult.flatMap { activeState ->
+                    when (activeState.halted) {
+                        true -> activeState.asSuccess()
+                        false -> processor.step(activeState)
+                    }
                 }
-        }
+            }
+            .flatMap { finalState ->
+                when (finalState.halted) {
+                    true -> ProcessorProgramRunResult(finalState).asSuccess()
+                    false -> ProcessorCycleLimitExceeded(maxCycleCount).asFailure()
+                }
+            }
+    }
 }

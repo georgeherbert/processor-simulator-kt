@@ -7,6 +7,7 @@ import strikt.assertions.isEqualTo
 import strikt.assertions.isGreaterThan
 import strikt.assertions.isLessThan
 import strikt.assertions.isTrue
+import toolchain.RealProgramBinaryPadder
 import testfixtures.isFailure
 import testfixtures.isSuccess
 import toolchain.RealRv32iCCompiler
@@ -17,12 +18,16 @@ import java.nio.file.Path
 class RealProcessorProgramRunnerTest {
 
     private val compiler = RealRv32iCCompiler("riscv64-unknown-elf-gcc", "riscv64-unknown-elf-objcopy")
+    private val programBinaryPadder = RealProgramBinaryPadder
     private val runner = RealProcessorProgramRunner()
     private val mainMemorySize = Size(32 * 1024)
 
     @Test
     fun `arithmetic program runs to expected completion`(@TempDir temporaryDirectory: Path) {
-        assertBenchmarkKernel(temporaryDirectory, "arithmetic.c", 18818u, 20_000_000)
+        val runResult = assertBenchmarkKernel(temporaryDirectory, "arithmetic.c", 904352u, 20_000_000)
+
+        expectThat(runResult.finalState.statistics.committedInstructionCount)
+            .isGreaterThan(100)
     }
 
     @Test
@@ -167,10 +172,10 @@ class RealProcessorProgramRunnerTest {
             .subject
 
         expectThat(scalarRunResult.finalState.registerFile.readCommitted(RegisterAddress(10)))
-            .isEqualTo(Word(18818u))
+            .isEqualTo(Word(904352u))
 
         expectThat(wideRunResult.finalState.registerFile.readCommitted(RegisterAddress(10)))
-            .isEqualTo(Word(18818u))
+            .isEqualTo(Word(904352u))
 
         expectThat(wideRunResult.finalState.statistics.cycleCount)
             .isLessThan(scalarRunResult.finalState.statistics.cycleCount)
@@ -181,7 +186,7 @@ class RealProcessorProgramRunnerTest {
         fileName: String,
         expectedReturnValue: UInt,
         maxCycleCount: Int
-    ) {
+    ): ProcessorProgramRunResult {
         val sourceFilePath = benchmarkSourceFilePath(fileName)
         expectThat(Files.exists(sourceFilePath))
             .isTrue()
@@ -191,7 +196,10 @@ class RealProcessorProgramRunnerTest {
         )
             .isSuccess()
             .subject
-        val paddedBinaryFilePath = paddedBinaryFilePath(binaryFilePath, temporaryDirectory, fileName.removeSuffix(".c"))
+        val paddedBinaryFilePath = paddedBinaryFilePath(
+            binaryFilePath,
+            temporaryDirectory.resolve(fileName.removeSuffix(".c") + "-padded.bin")
+        )
 
         val runResult = expectThat(
             runner.run(
@@ -213,6 +221,8 @@ class RealProcessorProgramRunnerTest {
 
         expectThat(runResult.finalState.statistics.committedInstructionCount)
             .isGreaterThan(0)
+
+        return runResult
     }
 
     private fun compileBenchmarkKernel(temporaryDirectory: Path, fileName: String): Path {
@@ -227,8 +237,7 @@ class RealProcessorProgramRunnerTest {
 
         return paddedBinaryFilePath(
             binaryFilePath,
-            temporaryDirectory,
-            fileName.removeSuffix(".c")
+            temporaryDirectory.resolve(fileName.removeSuffix(".c") + "-padded.bin")
         )
     }
 
@@ -245,31 +254,22 @@ class RealProcessorProgramRunnerTest {
             .isSuccess()
             .subject
 
-        return paddedBinaryFilePath(binaryFilePath, temporaryDirectory, "program")
+        return paddedBinaryFilePath(binaryFilePath, temporaryDirectory.resolve("program-padded.bin"))
     }
 
     private fun benchmarkSourceFilePath(fileName: String) =
         Path.of("")
             .toAbsolutePath()
-            .resolve("src/testFixtures/resources/benchmark_kernels")
+            .resolve("src/main/resources/benchmark_kernels")
             .resolve(fileName)
 
     private fun paddedBinaryFilePath(
         binaryFilePath: Path,
-        temporaryDirectory: Path,
-        outputName: String
-    ): Path {
-        val paddedFilePath = temporaryDirectory.resolve(outputName + "-padded.bin")
-        val nopInstruction = byteArrayOf(0x13, 0x00, 0x00, 0x00)
-        val nopPadding = ByteArray(512 * nopInstruction.size) { byteIndex ->
-            nopInstruction[byteIndex % nopInstruction.size]
-        }
-
-        Files.write(
-            paddedFilePath,
-            Files.readAllBytes(binaryFilePath) + nopPadding
+        paddedBinaryFilePath: Path
+    ): Path =
+        expectThat(
+            programBinaryPadder.pad(binaryFilePath, paddedBinaryFilePath)
         )
-
-        return paddedFilePath
-    }
+            .isSuccess()
+            .subject
 }

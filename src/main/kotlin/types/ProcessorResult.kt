@@ -50,11 +50,33 @@ sealed interface ProcessorExecutionError : ProcessorError
 data object ProcessorAlreadyHalted : ProcessorExecutionError
 data class ProcessorCycleLimitExceeded(val maxCycleCount: Int) : ProcessorExecutionError
 
+sealed interface SimulationError : ProcessorError
+data class SimulationCycleCountInvalid(val cycleCount: Int) : SimulationError
+data class BenchmarkProgramNotFound(val programName: String) : SimulationError
+data class BenchmarkProgramResourceMissing(val programName: String) : SimulationError
+data class BenchmarkProgramMaterializationFailed(
+    val programName: String,
+    val targetPath: String
+) : SimulationError
+data class BenchmarkProgramSourceReadFailed(val programName: String) : SimulationError
+data class ExperimentRangeInvalid(
+    val startValue: Int,
+    val endValue: Int,
+    val increment: Int
+) : SimulationError
+data class ExperimentConfigurationValueInvalid(
+    val fieldName: String,
+    val value: Int
+) : SimulationError
+
 sealed interface ToolchainError : ProcessorError
+data class ProgramBinaryFileNotFound(val filePath: String) : ToolchainError
+data class ProgramBinaryFileReadFailed(val filePath: String) : ToolchainError
+data class ProgramBinaryFileWriteFailed(val filePath: String) : ToolchainError
 data class ExternalToolExecutionFailed(
     val executable: String,
     val exitCode: Int,
-    val standardError: String,
+    val standardError: String
 ) : ToolchainError
 data class ExternalToolProcessLaunchFailed(val executable: String) : ToolchainError
 data class ExternalToolExecutionInterrupted(val executable: String) : ToolchainError

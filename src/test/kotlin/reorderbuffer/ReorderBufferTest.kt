@@ -193,4 +193,19 @@ class ReorderBufferTest {
                 )
             )
     }
+
+    @Test
+    fun `entries returns empty list after clear`() {
+        val allocationResult = expectThat(
+            RealReorderBuffer(Size(1)).enqueueBranch(
+                InstructionAddress(8),
+                InstructionAddress(12)
+            )
+        )
+            .isSuccess()
+            .subject
+
+        expectThat(allocationResult.reorderBuffer.clear().commitReadyHeadIfPossible())
+            .isEqualTo(ReorderBufferCommitReadyHeadUnavailable)
+    }
 }

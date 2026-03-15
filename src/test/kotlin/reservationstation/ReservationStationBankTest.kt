@@ -31,6 +31,21 @@ class ReservationStationBankTest {
             .isSuccess()
             .subject
 
+        expectThat(reservationStationBank.dispatchReady(1).entries)
+            .isEqualTo(
+                listOf(
+                    ReadyReservationStationEntry(
+                        ReservationStationId(1),
+                        Add,
+                        Word(1u),
+                        Word(2u),
+                        Word(0u),
+                        RobId(1),
+                        InstructionAddress(4)
+                    )
+                )
+            )
+
         expectThat(
             reservationStationBank.enqueue(
                 Subtract,
