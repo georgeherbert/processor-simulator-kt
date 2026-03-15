@@ -15,10 +15,8 @@ Use this file as the default operating guide for contributors and coding agents.
 - `pre-commit` intentionally runs `./gradlew clean build` to reduce local/CI drift.
 - For quick feedback during development, `./gradlew test` is fine, but pre-commit remains the stricter gate.
 
-## Reference Scope (C Implementation)
-- Reference source is under `reference/src_superscalar/`.
-- Reference architecture is documented in `reference/presentation.pdf`.
-- The Kotlin implementation target includes all major components from the reference:
+## Processor Scope
+- The Kotlin implementation target includes all major processor components:
   - CPU orchestration
   - Fetch unit
   - Decode unit
@@ -41,7 +39,6 @@ Use this file as the default operating guide for contributors and coding agents.
   - Pipeline control state (for example PC source and mispredict redirect)
 
 ## Target Kotlin Architecture (Required Shape)
-- Keep the same logical processor decomposition as the reference, but not the same coding style.
 - Model the simulator as explicit cycle transitions: `currentState -> nextState`.
 - Prefer immutable state snapshots and pure transition functions over in-place mutation.
 - Encapsulate each subsystem behind an interface and provide at least:

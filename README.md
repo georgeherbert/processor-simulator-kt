@@ -2,6 +2,8 @@
 
 Immutable Kotlin/JVM RV32I processor simulator with a Ktor backend and a React frontend for benchmark sweep experiments.
 
+The repository ships the Kotlin simulator, web app, and bundled benchmark programs directly. There is no separate reference C implementation in-tree.
+
 ## Prerequisites
 
 - JDK 21
@@ -93,6 +95,6 @@ Run only the frontend build:
 
 ## Backend Structure
 
-- `src/main/kotlin/web` contains the Ktor server, API wiring, simulation service, and snapshot mapping.
+- `src/main/kotlin/web` contains the Ktor server, API wiring, experiment service, and benchmark-source endpoints.
 - `frontend/` contains the React/Vite UI.
 - `src/main/resources/benchmark_kernels` contains the bundled C examples that can be compiled and run through the simulator.
